@@ -22,6 +22,8 @@ resources:
   jobs:
     lakeflow_trigger:
       source: resources/jobs/lakeflow_trigger.yml
+    gold_aggregates:
+      source: resources/jobs/gold_aggregates.yml
 
 variables:
   workspace_url:

@@ -1,0 +1,21 @@
+name: gold-aggregates-${bundle.target}
+schedule:
+  quartz_cron_expression: "0 0 5 * * ?"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
+tasks:
+  - task_key: daily_positions
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: gold_daily_positions
+    timeout_seconds: 1800
+  - task_key: sales_velocity
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: gold_sales_velocity
+    timeout_seconds: 1800
+  - task_key: open_orders
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: gold_open_orders
+    timeout_seconds: 1800

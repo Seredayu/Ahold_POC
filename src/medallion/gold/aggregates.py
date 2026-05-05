@@ -228,3 +228,24 @@ def run_sales_velocity(spark: SparkSession) -> None:
 
 def run_open_orders(spark: SparkSession) -> None:
     OpenOrdersWriter(spark).run()
+
+
+# ---------------------------------------------------------------------------
+# Wheel entry points — no-arg wrappers for Databricks python_wheel_task.
+# Each function retrieves the active SparkSession created by the cluster
+# runtime, so the entry point requires no arguments from the CLI.
+# ---------------------------------------------------------------------------
+
+def _entry_daily_positions() -> None:
+    from pyspark.sql import SparkSession
+    run_daily_positions(SparkSession.getActiveSession())
+
+
+def _entry_sales_velocity() -> None:
+    from pyspark.sql import SparkSession
+    run_sales_velocity(SparkSession.getActiveSession())
+
+
+def _entry_open_orders() -> None:
+    from pyspark.sql import SparkSession
+    run_open_orders(SparkSession.getActiveSession())
