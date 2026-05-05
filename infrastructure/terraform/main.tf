@@ -1,39 +1,61 @@
-provider "azurerm" { features {} }
-
 resource "azurerm_resource_group" "main" {
   name     = var.resource_group_name
   location = var.location
 }
 
-resource "azurerm_storage_account" "datalake" {
-  name                     = var.storage_account_name
-  resource_group_name      = azurerm_resource_group.main.name
-  location                 = azurerm_resource_group.main.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  is_hns_enabled           = true  # ADLS Gen2
+module "networking" {
+  source = "./modules/networking"
+
+  prefix                         = var.prefix
+  resource_group_name            = azurerm_resource_group.main.name
+  location                       = var.location
+  expressroute_circuit_id        = var.expressroute_circuit_id
+  expressroute_authorization_key = var.expressroute_authorization_key
 }
 
-resource "azurerm_storage_container" "bronze" {
-  name                  = "bronze"
-  storage_account_name  = azurerm_storage_account.datalake.name
-  container_access_type = "private"
+module "storage" {
+  source = "./modules/storage"
+
+  prefix               = var.prefix
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = var.location
+  storage_account_name = var.storage_account_name
+  private_subnet_id    = module.networking.databricks_private_subnet_id
 }
 
-resource "azurerm_storage_container" "silver" {
-  name                  = "silver"
-  storage_account_name  = azurerm_storage_account.datalake.name
-  container_access_type = "private"
+module "databricks" {
+  source = "./modules/databricks"
+
+  providers = {
+    azurerm              = azurerm
+    databricks.accounts  = databricks.accounts
+    databricks.workspace = databricks.workspace
+  }
+
+  prefix                     = var.prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  vnet_id                    = module.networking.vnet_id
+  public_subnet_name         = module.networking.databricks_public_subnet_name
+  private_subnet_name        = module.networking.databricks_private_subnet_name
+  public_nsg_association_id  = module.networking.public_nsg_association_id
+  private_nsg_association_id = module.networking.private_nsg_association_id
+  storage_account_id         = module.storage.storage_account_id
+  storage_account_name       = module.storage.storage_account_name
+  databricks_account_id      = var.databricks_account_id
 }
 
-resource "azurerm_storage_container" "gold" {
-  name                  = "gold"
-  storage_account_name  = azurerm_storage_account.datalake.name
-  container_access_type = "private"
-}
+module "lakeflow" {
+  source = "./modules/lakeflow"
 
-resource "azurerm_storage_container" "gold_edi_outbound" {
-  name                  = "gold-edi-outbound"
-  storage_account_name  = azurerm_storage_account.datalake.name
-  container_access_type = "private"
+  providers = {
+    databricks.workspace = databricks.workspace
+  }
+
+  prefix               = var.prefix
+  cluster_policy_id    = module.databricks.cluster_policy_id
+  secret_scope_name    = module.databricks.secret_scope_name
+  storage_account_name = module.storage.storage_account_name
+
+  depends_on = [module.databricks]
 }
