@@ -156,3 +156,75 @@ class SalesVelocityWriter(GoldAggregateBase):
     def compute(self) -> DataFrame:
         enriched = self.spark.table("silver.sap.enriched_movements")
         return compute_sales_velocity(enriched, self._reference_date)
+
+
+def compute_open_orders(open_orders_clean: DataFrame, sku_registry: DataFrame) -> DataFrame:
+    """
+    Sum open PO quantities by (WERKS, unified_sku_id) where EINDT >= current_date().
+    Only future deliveries are included.
+
+    Steps:
+    1. Filter open_orders_clean to EINDT >= current_date()
+    2. Join to sku_registry on MATNR == sap_material_number (inner), keep unified_sku_id + MEINS
+    3. Group by (WERKS, unified_sku_id, MEINS): sum MENGE → open_qty, min EINDT → earliest_delivery
+    4. Return columns: werks, unified_sku_id, open_qty (decimal(13,3)), earliest_delivery (date), uom
+    """
+    future = open_orders_clean.filter(F.col("EINDT") >= F.current_date())
+
+    joined = (
+        future
+        .join(
+            sku_registry.select("sap_material_number", "unified_sku_id", "MEINS"),
+            future["MATNR"] == sku_registry["sap_material_number"],
+            how="inner",
+        )
+        .drop("sap_material_number")
+    )
+
+    return (
+        joined
+        .groupBy("WERKS", "unified_sku_id", "MEINS")
+        .agg(
+            F.sum("MENGE").alias("open_qty"),
+            F.min("EINDT").alias("earliest_delivery"),
+        )
+        .select(
+            F.col("WERKS").alias("werks"),
+            F.col("unified_sku_id"),
+            F.col("open_qty").cast("decimal(13,3)"),
+            F.col("earliest_delivery").cast("date"),
+            F.col("MEINS").alias("uom"),
+        )
+    )
+
+
+class DailyPositionsWriter(GoldAggregateBase):
+    def target_table(self) -> str:
+        return "inventory.daily_positions"
+
+    def compute(self) -> DataFrame:
+        inventory = self.spark.table("silver.sap.inventory_clean")
+        sku = self.spark.table("silver.master.unified_sku_registry")
+        return compute_daily_positions(inventory, sku)
+
+
+class OpenOrdersWriter(GoldAggregateBase):
+    def target_table(self) -> str:
+        return "replenishment.open_orders"
+
+    def compute(self) -> DataFrame:
+        open_orders = self.spark.table("silver.sap.open_orders_clean")
+        sku = self.spark.table("silver.master.unified_sku_registry")
+        return compute_open_orders(open_orders, sku)
+
+
+def run_daily_positions(spark: SparkSession) -> None:
+    DailyPositionsWriter(spark).run()
+
+
+def run_sales_velocity(spark: SparkSession) -> None:
+    SalesVelocityWriter(spark).run()
+
+
+def run_open_orders(spark: SparkSession) -> None:
+    OpenOrdersWriter(spark).run()

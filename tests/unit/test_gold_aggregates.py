@@ -6,7 +6,7 @@ from pyspark.sql.types import (
     DateType, DecimalType, StringType, StructField, StructType,
 )
 
-from src.medallion.gold.aggregates import compute_daily_positions, compute_sales_velocity
+from src.medallion.gold.aggregates import compute_daily_positions, compute_open_orders, compute_sales_velocity
 
 INVENTORY_SCHEMA = StructType([
     StructField("MBLNR", StringType(), True),
@@ -22,6 +22,15 @@ SKU_SCHEMA = StructType([
     StructField("sap_material_number", StringType(), True),
     StructField("unified_sku_id", StringType(), True),
     StructField("MEINS", StringType(), True),
+])
+
+OPEN_ORDERS_SCHEMA = StructType([
+    StructField("EBELN", StringType(), True),
+    StructField("EBELP", StringType(), True),
+    StructField("MATNR", StringType(), True),
+    StructField("WERKS", StringType(), True),
+    StructField("MENGE", DecimalType(13, 3), True),
+    StructField("EINDT", DateType(), True),
 ])
 
 ENRICHED_SCHEMA = StructType([
@@ -123,3 +132,64 @@ def test_sales_velocity_reversal_subtracts(spark):
     )
     result = compute_sales_velocity(enriched, reference_date=ref).collect()
     assert float(result[0]["sales_7d"]) == pytest.approx(8.0)
+
+
+def test_open_orders_past_delivery_filtered_out(spark):
+    """Orders with EINDT in the past are excluded; only future deliveries count."""
+    from datetime import date as _date
+    from unittest.mock import patch
+    import pyspark.sql.functions as psf
+
+    future_date = _date(2099, 12, 31)
+    past_date = _date(2020, 1, 1)
+
+    orders = spark.createDataFrame(
+        [
+            ("PO001", "001", "MAT001", "1000", Decimal("50"), future_date),
+            ("PO002", "001", "MAT001", "1000", Decimal("20"), past_date),
+        ],
+        OPEN_ORDERS_SCHEMA,
+    )
+    sku = spark.createDataFrame(
+        [("MAT001", "5000100000001", "KG")],
+        SKU_SCHEMA,
+    )
+    result = compute_open_orders(orders, sku).collect()
+    assert len(result) == 1
+    assert float(result[0]["open_qty"]) == pytest.approx(50.0)
+
+
+def test_open_orders_computed_at_column_present(spark):
+    """OpenOrdersWriter.run() adds _computed_at before writing."""
+    from unittest.mock import MagicMock, patch, PropertyMock
+    import pyspark.sql
+    from src.medallion.gold.aggregates import GoldAggregateBase
+
+    class _Stub(GoldAggregateBase):
+        def target_table(self): return "replenishment.open_orders"
+        def compute(self):
+            return spark.createDataFrame(
+                [("1000", "5000100000001", Decimal("50"), date(2099, 12, 31), "KG")],
+                StructType([
+                    StructField("werks", StringType(), True),
+                    StructField("unified_sku_id", StringType(), True),
+                    StructField("open_qty", DecimalType(13, 3), True),
+                    StructField("earliest_delivery", DateType(), True),
+                    StructField("uom", StringType(), True),
+                ]),
+            )
+
+    captured = {}
+
+    def intercept_write(self):
+        captured["cols"] = self.columns
+        mock_writer = MagicMock()
+        mock_writer.format.return_value = mock_writer
+        mock_writer.mode.return_value = mock_writer
+        mock_writer.saveAsTable.return_value = None
+        return mock_writer
+
+    with patch.object(pyspark.sql.DataFrame, "write", new_callable=PropertyMock, side_effect=intercept_write):
+        _Stub(spark).run()
+
+    assert "_computed_at" in captured["cols"]
