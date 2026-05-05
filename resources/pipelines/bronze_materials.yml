@@ -1,0 +1,18 @@
+name: bronze-sap-materials-${bundle.target}
+target: bronze
+channel: CURRENT
+
+clusters:
+  - label: default
+    policy_id: ${var.cluster_policy_id}
+    autoscale:
+      min_workers: 1
+      max_workers: 4
+
+libraries:
+  - notebook:
+      path: /Shared/freshness-poc/notebooks/bronze_materials_loader
+
+configuration:
+  storage_account: ${var.storage_account}
+  bronze_catalog: bronze

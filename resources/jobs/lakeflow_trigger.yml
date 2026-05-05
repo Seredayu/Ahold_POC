@@ -1,0 +1,38 @@
+name: lakeflow-daily-bronze-${bundle.target}
+
+schedule:
+  quartz_cron_expression: "0 0 4 * * ?"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${"UNPAUSED" if var.schedule_enabled == "true" else "PAUSED"}
+
+email_notifications:
+  on_failure:
+    - replenishment-oncall@ah.nl
+
+tasks:
+  - task_key: lakeflow_sap_cdc
+    description: "Trigger Lakeflow Connect CDC pipeline — SAP ECC → Bronze (Terraform-managed)"
+    pipeline_task:
+      pipeline_id: ${var.lakeflow_pipeline_id}
+    timeout_seconds: 3600
+
+  - task_key: bronze_materials
+    depends_on:
+      - task_key: lakeflow_sap_cdc
+    pipeline_task:
+      pipeline_id: ${resources.pipelines.bronze_materials.id}
+    timeout_seconds: 1800
+
+  - task_key: bronze_inventory
+    depends_on:
+      - task_key: lakeflow_sap_cdc
+    pipeline_task:
+      pipeline_id: ${resources.pipelines.bronze_inventory.id}
+    timeout_seconds: 1800
+
+  - task_key: bronze_open_orders
+    depends_on:
+      - task_key: lakeflow_sap_cdc
+    pipeline_task:
+      pipeline_id: ${resources.pipelines.bronze_open_orders.id}
+    timeout_seconds: 1800

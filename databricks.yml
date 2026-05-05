@@ -1,0 +1,58 @@
+bundle:
+  name: ahold-freshness-poc
+
+artifacts:
+  default:
+    type: whl
+    build: pip wheel src/ -w dist/
+    path: dist/
+
+resources:
+  pipelines:
+    bronze_materials:
+      source: resources/pipelines/bronze_materials.yml
+    bronze_inventory:
+      source: resources/pipelines/bronze_inventory.yml
+    bronze_open_orders:
+      source: resources/pipelines/bronze_open_orders.yml
+  jobs:
+    lakeflow_trigger:
+      source: resources/jobs/lakeflow_trigger.yml
+
+variables:
+  workspace_url:
+    description: "Databricks workspace URL (from terraform output)"
+  cluster_policy_id:
+    description: "Cluster policy ID (from terraform output)"
+  storage_account:
+    description: "ADLS Gen2 storage account name"
+    default: "saholdpocdata"
+  schedule_enabled:
+    description: "Set to true to unpause the daily schedule"
+    default: "false"
+  lakeflow_pipeline_id:
+    description: "Terraform-managed Lakeflow Connect pipeline ID (from terraform output lakeflow_pipeline_id)"
+
+targets:
+  dev:
+    mode: development
+    workspace:
+      host: ${var.workspace_url}
+    variables:
+      schedule_enabled: "false"
+      storage_account: "saholdpocdata"
+
+  staging:
+    workspace:
+      host: ${var.workspace_url}
+    variables:
+      schedule_enabled: "true"
+      storage_account: "saholdpocdata"
+
+  prod:
+    mode: production
+    workspace:
+      host: ${var.workspace_url}
+    variables:
+      schedule_enabled: "true"
+      storage_account: "saholdpocdata"
