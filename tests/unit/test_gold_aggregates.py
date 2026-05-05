@@ -6,7 +6,7 @@ from pyspark.sql.types import (
     DateType, DecimalType, StringType, StructField, StructType,
 )
 
-from src.medallion.gold.aggregates import compute_daily_positions
+from src.medallion.gold.aggregates import compute_daily_positions, compute_sales_velocity
 
 INVENTORY_SCHEMA = StructType([
     StructField("MBLNR", StringType(), True),
@@ -21,6 +21,15 @@ INVENTORY_SCHEMA = StructType([
 SKU_SCHEMA = StructType([
     StructField("sap_material_number", StringType(), True),
     StructField("unified_sku_id", StringType(), True),
+    StructField("MEINS", StringType(), True),
+])
+
+ENRICHED_SCHEMA = StructType([
+    StructField("WERKS", StringType(), True),
+    StructField("unified_sku_id", StringType(), True),
+    StructField("BWART", StringType(), True),
+    StructField("BUDAT", DateType(), True),
+    StructField("MENGE", DecimalType(13, 3), True),
     StructField("MEINS", StringType(), True),
 ])
 
@@ -79,3 +88,38 @@ def test_daily_positions_computed_at_column_present(spark):
         _Stub(spark).run()
 
     assert "_computed_at" in captured["cols"]
+
+
+def test_sales_velocity_windows_all_computed(spark):
+    """sales_7d, sales_14d, sales_28d, sales_90d are all present and sales_28d includes the row."""
+    from datetime import date as _date
+    ref = _date(2024, 2, 1)  # reference date
+    enriched = spark.createDataFrame(
+        [
+            ("1000", "5000100000001", "601", _date(2024, 1, 10), Decimal("5"), "KG"),  # 22 days before ref → in 28d, 90d
+            ("1000", "5000100000001", "601", _date(2024, 1, 29), Decimal("3"), "KG"),  # 3 days before ref → in 7d, 14d, 28d, 90d
+        ],
+        ENRICHED_SCHEMA,
+    )
+    result = compute_sales_velocity(enriched, reference_date=ref).collect()
+    assert len(result) == 1
+    row = result[0]
+    assert float(row["sales_7d"]) == pytest.approx(3.0)
+    assert float(row["sales_14d"]) == pytest.approx(3.0)
+    assert float(row["sales_28d"]) == pytest.approx(8.0)
+    assert float(row["sales_90d"]) == pytest.approx(8.0)
+
+
+def test_sales_velocity_reversal_subtracts(spark):
+    """BWART 602 reversal subtracts from the window sum."""
+    from datetime import date as _date
+    ref = _date(2024, 2, 1)
+    enriched = spark.createDataFrame(
+        [
+            ("1000", "5000100000001", "601", _date(2024, 1, 29), Decimal("10"), "KG"),
+            ("1000", "5000100000001", "602", _date(2024, 1, 30), Decimal("2"), "KG"),
+        ],
+        ENRICHED_SCHEMA,
+    )
+    result = compute_sales_velocity(enriched, reference_date=ref).collect()
+    assert float(result[0]["sales_7d"]) == pytest.approx(8.0)

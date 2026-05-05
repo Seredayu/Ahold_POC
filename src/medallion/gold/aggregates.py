@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import Column, DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import Window
 
@@ -92,3 +92,67 @@ def compute_daily_positions(inventory_clean: DataFrame, sku_registry: DataFrame)
             F.col("MEINS").alias("uom"),
         )
     )
+
+
+def compute_sales_velocity(enriched_movements: DataFrame, reference_date=None) -> DataFrame:
+    """
+    Sales velocity windows (7, 14, 28, 90 calendar days) per (WERKS, unified_sku_id).
+
+    Source: enriched_movements filtered to BWART IN (601, 602).
+    BWART 601 = delivery to customer (positive sales).
+    BWART 602 = delivery reversal (subtract from sum).
+    Sign: 601 → +MENGE, 602 → -MENGE.
+
+    reference_date: date used as "today" for window cutoff. Defaults to current_date().
+    """
+    if reference_date is None:
+        ref = F.current_date()
+    else:
+        ref = F.lit(reference_date)
+
+    sales = (
+        enriched_movements
+        .filter(F.col("BWART").isin("601", "602"))
+        .withColumn(
+            "signed_qty",
+            F.when(F.col("BWART") == "601", F.col("MENGE"))
+             .otherwise(-F.col("MENGE")),
+        )
+    )
+
+    def window_sum(days: int) -> Column:
+        cutoff = ref - F.expr(f"INTERVAL {days} DAYS")
+        return F.sum(F.when(F.col("BUDAT") >= cutoff, F.col("signed_qty")).otherwise(F.lit(0)))
+
+    return (
+        sales
+        .groupBy("WERKS", "unified_sku_id", "MEINS")
+        .agg(
+            window_sum(7).alias("sales_7d"),
+            window_sum(14).alias("sales_14d"),
+            window_sum(28).alias("sales_28d"),
+            window_sum(90).alias("sales_90d"),
+        )
+        .select(
+            F.col("WERKS").alias("werks"),
+            F.col("unified_sku_id"),
+            F.col("sales_7d").cast("decimal(13,3)"),
+            F.col("sales_14d").cast("decimal(13,3)"),
+            F.col("sales_28d").cast("decimal(13,3)"),
+            F.col("sales_90d").cast("decimal(13,3)"),
+            F.col("MEINS").alias("uom"),
+        )
+    )
+
+
+class SalesVelocityWriter(GoldAggregateBase):
+    def __init__(self, spark: SparkSession, reference_date=None, catalog: str = "gold"):
+        super().__init__(spark, catalog)
+        self._reference_date = reference_date
+
+    def target_table(self) -> str:
+        return "sales.velocity"
+
+    def compute(self) -> DataFrame:
+        enriched = self.spark.table("silver.sap.enriched_movements")
+        return compute_sales_velocity(enriched, self._reference_date)
