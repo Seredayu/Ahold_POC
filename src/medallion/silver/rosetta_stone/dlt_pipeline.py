@@ -1,5 +1,4 @@
 import dlt
-from pyspark.sql import functions as F
 from src.medallion.silver.rosetta_stone.entity_resolution import build_registry
 
 
