@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "obsidian": {
+      "type": "http",
+      "url": "http://localhost:22360"
+    }
+  }
+}

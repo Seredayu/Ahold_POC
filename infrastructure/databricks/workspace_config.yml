@@ -1,0 +1,33 @@
+workspace:
+  name: dbw-ahold-freshness-poc
+  unity_catalog:
+    metastore: ahold-metastore-westeurope
+    catalogs:
+      - name: bronze
+      - name: silver
+      - name: gold
+      - name: feature_store
+
+cluster_policies:
+  - name: freshness-poc-job-cluster
+    spark_version: "14.3.x-scala2.12"
+    node_type_id: Standard_DS3_v2
+    autoscale:
+      min_workers: 2
+      max_workers: 8
+
+feature_store:
+  enabled: true
+
+mlflow:
+  experiment_location: /Shared/freshness-poc
+
+dlt_pipelines:
+  - name: silver-rosetta-stone
+    target: silver
+    continuous: false
+    schedule: "0 4 * * *"
+  - name: silver-demand-features
+    target: silver
+    continuous: false
+    schedule: "0 4 * * *"

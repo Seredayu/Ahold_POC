@@ -1,0 +1,46 @@
+Ahold Delhaize Freshness Sprint — 16-Week POC Plan                                                                    
+  Phases                                                                                                                
+  ┌───────┬───────┬────────────────────────────────────────────────────────────────────┐
+  │ Phase │ Weeks │                               Focus                                │
+  ├───────┼───────┼────────────────────────────────────────────────────────────────────┤
+  │ 0     │ 1–2   │ Azure infra + SAP connectivity (CDC via Lakeflow Connect)          │
+  ├───────┼───────┼────────────────────────────────────────────────────────────────────┤
+  │ 1     │ 3–5   │ Bronze/Silver/Gold Medallion + Rosetta Stone SKU/Site mapping      │
+  ├───────┼───────┼────────────────────────────────────────────────────────────────────┤
+  │ 2     │ 6–8   │ Feature Store + Engine 1: Phantom Stock Detector                   │
+  ├───────┼───────┼────────────────────────────────────────────────────────────────────┤
+  │ 3     │ 9–11  │ Demand Models (M1/M2/M4) + Engine 2: Freshness Orchestrator + BAPI │
+  ├───────┼───────┼────────────────────────────────────────────────────────────────────┤
+  │ 4     │ 12–14 │ Engine 3: Sweeper + EDI 850 + React Field App                      │
+  ├───────┼───────┼────────────────────────────────────────────────────────────────────┤
+  │ 5     │ 15–16 │ 25-store A/B pilot + measurement                                   │
+  └───────┴───────┴────────────────────────────────────────────────────────────────────┘
+
+  Three Engines — Success Metrics
+
+  - Phantom Stock Detector: XGBoost classifier, precision ≥85%, +4% OSA
+  - Freshness Orchestrator: MILP with Transit-to-Life ratio constraint, waste 3.5%→2.5%, zero expiry violations
+  - AI Sweeper: deterministic state machine (not LLM — must be auditable), ≥90% No-Touch, 100% 08:15 AM EDI release
+
+  Critical Risks (start these Week 0, before the sprint)
+
+  1. SAP RFC/BAPI access — longest lead-time item; get BAPI_PO_CREATE1 authorization approved before Week 1
+  2. Rosetta Stone quality — if match rate <95%, all models degrade; run MM60 data quality check in Week 1
+  3. EDI supplier onboarding — 4–6 week lead time; identify pilot supplier and start agreement in Week 1
+
+  Tech Decisions
+
+  - MILP: PuLP/CBC for POC (abstracted behind SolverInterface for future OR-Tools/Gurobi swap)
+  - Demand model: LightGBM + Prophet seasonal decomposition as features
+  - EDI transport: Azure Logic Apps (not direct SFTP from Databricks — security boundary)
+  - Sweeper: deterministic Pydantic state machine, not LLM — purchase orders require auditability
+
+  Key Go/No-Go Gates
+
+  - Wk 5: Rosetta Stone ≥95% match → unblocks all models
+  - Wk 8: Engine 1 backtest precision ≥80% → proceed to Engine 2
+  - Wk 11: BAPI write-back in SAP QA + 1 EDI supplier test confirmed
+  - Wk 14: Full pipeline end-to-end by 08:15 AM in staging
+
+  ---
+  The git repo is initialized. Ready to scaffold the project structure whenever you want to start building.
