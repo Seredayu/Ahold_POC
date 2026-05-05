@@ -18,6 +18,9 @@ terraform {
   }
 }
 
+# Auth: requires Azure CLI login (run: az login) or ARM_* env vars.
+# For Databricks accounts provider: set DATABRICKS_ACCOUNT_ID env var or use var.databricks_account_id.
+
 provider "azurerm" {
   features {
     key_vault {

@@ -16,3 +16,9 @@ __pycache__/
 .pytest_cache/
 .env
 .venv/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/

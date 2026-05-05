@@ -7,7 +7,7 @@ variable "location" {
 }
 
 variable "storage_account_name" {
-  default = "saholdpoc"
+  default = "saholdpocdata"
 }
 
 variable "databricks_workspace_name" {

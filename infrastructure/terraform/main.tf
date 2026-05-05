@@ -1,16 +1,3 @@
-terraform {
-  required_providers {
-    azurerm = { source = "hashicorp/azurerm", version = "~> 3.0" }
-    databricks = { source = "databricks/databricks", version = "~> 1.0" }
-  }
-  backend "azurerm" {
-    resource_group_name  = "rg-ahold-poc-tfstate"
-    storage_account_name = "saholdpoctfstate"
-    container_name       = "tfstate"
-    key                  = "ahold-poc.tfstate"
-  }
-}
-
 provider "azurerm" { features {} }
 
 resource "azurerm_resource_group" "main" {

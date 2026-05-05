@@ -8,4 +8,5 @@ storage_account_name           = "saholdpocdata"
 expressroute_circuit_id        = "/subscriptions/00000000/resourceGroups/rg-network/providers/Microsoft.Network/expressRouteCircuits/er-ahold"
 expressroute_authorization_key = "00000000-0000-0000-0000-000000000000"
 databricks_account_id          = "00000000-0000-0000-0000-000000000000"
+# Leave empty for Stage 1. After Stage 1 apply completes, set this to terraform output workspace_url value.
 workspace_url                  = ""
