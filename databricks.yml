@@ -17,6 +17,8 @@ resources:
       source: resources/pipelines/bronze_open_orders.yml
     silver_rosetta_stone:
       source: resources/pipelines/silver_rosetta_stone.yml
+    silver_demand_features:
+      source: resources/pipelines/silver_demand_features.yml
   jobs:
     lakeflow_trigger:
       source: resources/jobs/lakeflow_trigger.yml

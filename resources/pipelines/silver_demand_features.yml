@@ -1,0 +1,15 @@
+name: silver-demand-features-${bundle.target}
+target: silver
+channel: CURRENT
+clusters:
+  - label: default
+    policy_id: ${var.cluster_policy_id}
+    autoscale:
+      min_workers: 1
+      max_workers: 4
+libraries:
+  - notebook:
+      path: /Shared/freshness-poc/notebooks/silver_demand_features
+configuration:
+  bronze_catalog: bronze
+  silver_catalog: silver
