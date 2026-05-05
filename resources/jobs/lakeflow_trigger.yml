@@ -3,7 +3,7 @@ name: lakeflow-daily-bronze-${bundle.target}
 schedule:
   quartz_cron_expression: "0 0 4 * * ?"
   timezone_id: "Europe/Amsterdam"
-  pause_status: ${"UNPAUSED" if var.schedule_enabled == "true" else "PAUSED"}
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
 
 email_notifications:
   on_failure:
