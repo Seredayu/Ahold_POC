@@ -46,8 +46,9 @@ def test_daily_positions_receipt_minus_issue_nets_correctly(spark):
 
 
 def test_daily_positions_computed_at_column_present(spark):
-    """run() must add _computed_at; test via GoldAggregateBase.run() path."""
-    from unittest.mock import MagicMock, patch
+    """GoldAggregateBase.run() adds _computed_at to the DataFrame before writing."""
+    from unittest.mock import MagicMock, patch, PropertyMock
+    import pyspark.sql
     from src.medallion.gold.aggregates import GoldAggregateBase
 
     class _Stub(GoldAggregateBase):
@@ -64,10 +65,17 @@ def test_daily_positions_computed_at_column_present(spark):
                 ]),
             )
 
-    stub = _Stub(spark)
     captured = {}
-    with patch.object(stub, "run") as mock_run:
-        # Call the real run() via the unpatched base
-        df = stub.compute().withColumn("_computed_at", __import__("pyspark.sql.functions", fromlist=["current_timestamp"]).current_timestamp())
-        captured["cols"] = df.columns
+
+    def intercept_write(self):
+        captured["cols"] = self.columns
+        mock_writer = MagicMock()
+        mock_writer.format.return_value = mock_writer
+        mock_writer.mode.return_value = mock_writer
+        mock_writer.saveAsTable.return_value = None
+        return mock_writer
+
+    with patch.object(pyspark.sql.DataFrame, "write", new_callable=PropertyMock, side_effect=intercept_write):
+        _Stub(spark).run()
+
     assert "_computed_at" in captured["cols"]
