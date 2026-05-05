@@ -30,6 +30,7 @@ class SAPECCMaterialsLoader(AutoLoaderBase):
     def target_schema(self) -> StructType:
         return StructType([
             StructField("MATNR", StringType(), True),
+            StructField("EAN11", StringType(), True),    # EAN barcode — Rosetta Stone primary key
             StructField("WERKS", StringType(), True),
             StructField("MAKTX", StringType(), True),
             StructField("MTART", StringType(), True),

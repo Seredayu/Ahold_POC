@@ -30,3 +30,9 @@ def test_add_audit_columns_present_after_transform(spark):
     df = spark.createDataFrame([("000000000000001234", "NL01")], ["MATNR", "WERKS"])
     result = loader.add_audit_columns(df)
     assert "_ingested_at" in result.columns
+
+
+def test_target_schema_contains_ean11(spark):
+    loader = SAPECCMaterialsLoader(spark=spark)
+    field_names = [f.name for f in loader.target_schema().fields]
+    assert "EAN11" in field_names
