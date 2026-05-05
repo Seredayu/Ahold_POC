@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and fill in real values. NEVER commit terraform.tfvars.
+
+subscription_id                = "00000000-0000-0000-0000-000000000000"
+location                       = "westeurope"
+prefix                         = "ahpoc"
+resource_group_name            = "rg-ahold-freshness-poc"
+storage_account_name           = "saholdpocdata"
+expressroute_circuit_id        = "/subscriptions/00000000/resourceGroups/rg-network/providers/Microsoft.Network/expressRouteCircuits/er-ahold"
+expressroute_authorization_key = "00000000-0000-0000-0000-000000000000"
+databricks_account_id          = "00000000-0000-0000-0000-000000000000"
+workspace_url                  = ""
