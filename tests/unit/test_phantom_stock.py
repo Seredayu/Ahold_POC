@@ -108,3 +108,41 @@ def test_generate_labels_null_stock_is_not_phantom(spark):
     )
     result = generate_labels(inventory, velocity).collect()
     assert result[0]["is_phantom"] == 0
+
+
+def test_predict_auto_corrected_for_high_score(spark):
+    import numpy as np
+    from unittest.mock import MagicMock
+    from engines.phantom_stock.classifier import PhantomStockClassifier
+
+    clf = PhantomStockClassifier()
+    mock_model = MagicMock()
+    mock_model.predict.return_value = np.array([0.97])
+    clf._model = mock_model
+
+    # Row with all 8 feature columns + identity + shelf_life context
+    row = ("1000", "SKU001", 0.0, 0.0, 20.0, 60.0, 50.0, None, 0.0, 14, 7)
+    features_df = spark.createDataFrame([row], FEATURES_SCHEMA)
+
+    result = clf.predict(features_df).collect()
+    assert result[0]["action"] == "AUTO_CORRECTED"
+    assert result[0]["phantom_score"] == pytest.approx(0.97, abs=1e-6)
+    assert result[0]["is_phantom"] is True
+
+
+def test_predict_pending_review_for_mid_score(spark):
+    import numpy as np
+    from unittest.mock import MagicMock
+    from engines.phantom_stock.classifier import PhantomStockClassifier
+
+    clf = PhantomStockClassifier()
+    mock_model = MagicMock()
+    mock_model.predict.return_value = np.array([0.88])
+    clf._model = mock_model
+
+    row = ("1000", "SKU002", 0.0, 0.0, 10.0, 40.0, 50.0, None, 0.0, 21, 5)
+    features_df = spark.createDataFrame([row], FEATURES_SCHEMA)
+
+    result = clf.predict(features_df).collect()
+    assert result[0]["action"] == "PENDING_REVIEW"
+    assert result[0]["is_phantom"] is True
