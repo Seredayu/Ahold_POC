@@ -146,3 +146,22 @@ def test_predict_pending_review_for_mid_score(spark):
     result = clf.predict(features_df).collect()
     assert result[0]["action"] == "PENDING_REVIEW"
     assert result[0]["is_phantom"] is True
+
+
+def test_bapi_error_raised_on_http_500():
+    from unittest.mock import patch, MagicMock
+    from engines.phantom_stock.bapi_client import BAPIClient, BAPIError
+
+    mock_response = MagicMock()
+    mock_response.ok = False
+    mock_response.status_code = 500
+    mock_response.text = "Internal Server Error"
+
+    # Patch requests.post AND time.sleep to skip real delays
+    with patch("engines.phantom_stock.bapi_client.requests.post", return_value=mock_response), \
+         patch("engines.phantom_stock.bapi_client.time.sleep"):
+        client = BAPIClient("https://fake-btp-endpoint", "fake-token")
+        with pytest.raises(BAPIError) as exc_info:
+            client.post_goods_movement("1000", "SKU001")
+
+    assert "500" in str(exc_info.value)
