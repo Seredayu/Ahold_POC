@@ -57,3 +57,63 @@ def test_m1_forecast_increases_with_promo_week(spark):
     promo    = model.score(spark.createDataFrame([promo_row],    schema)).collect()
 
     assert promo[0]["forecast_7d"] > baseline[0]["forecast_7d"]
+
+
+def test_m2_weather_lift_above_one_for_heat_wave(spark):
+    import numpy as np
+    from unittest.mock import MagicMock
+    from engines.demand.m2_model import M2CorrectionModel
+
+    model = M2CorrectionModel()
+    mock_weather = MagicMock()
+    mock_weather.predict.return_value = np.array([1.35])
+    model._weather_model = mock_weather
+
+    m1_df = spark.createDataFrame(
+        [("1000", "SKU001", 100.0, 200.0, 400.0)],
+        ["werks", "unified_sku_id", "forecast_7d", "forecast_14d", "forecast_28d"],
+    )
+    weather_rows = [
+        {"forecast_date": f"2026-05-{i+1:02d}", "temperature_max": 25.0,
+         "precipitation": 0.0, "_ingest_ts": "ts"}
+        for i in range(28)
+    ]
+    weather_df = spark.createDataFrame(weather_rows)
+    promo_df = spark.createDataFrame(
+        [], spark.createDataFrame([("x", "y", 1.0)], ["werks", "unified_sku_id", "promo_lift"]).schema
+    )
+
+    result = model.score(m1_df, weather_df, promo_df).collect()
+    assert result[0]["weather_lift"] == pytest.approx(1.35)
+    assert result[0]["weather_lift"] > 1.0
+    assert result[0]["corrected_7d"] > 100.0
+
+
+def test_m2_promo_lift_above_one_for_active_promo(spark):
+    import numpy as np
+    from unittest.mock import MagicMock
+    from engines.demand.m2_model import M2CorrectionModel
+
+    model = M2CorrectionModel()
+    mock_weather = MagicMock()
+    mock_weather.predict.return_value = np.array([1.0])
+    model._weather_model = mock_weather
+
+    m1_df = spark.createDataFrame(
+        [("1000", "SKU001", 100.0, 200.0, 400.0)],
+        ["werks", "unified_sku_id", "forecast_7d", "forecast_14d", "forecast_28d"],
+    )
+    weather_rows = [
+        {"forecast_date": f"2026-05-{i+1:02d}", "temperature_max": 15.0,
+         "precipitation": 2.0, "_ingest_ts": "ts"}
+        for i in range(28)
+    ]
+    weather_df = spark.createDataFrame(weather_rows)
+    promo_df = spark.createDataFrame(
+        [("1000", "SKU001", 1.3)],
+        ["werks", "unified_sku_id", "promo_lift"],
+    )
+
+    result = model.score(m1_df, weather_df, promo_df).collect()
+    assert result[0]["promo_lift"] == pytest.approx(1.3)
+    assert result[0]["corrected_7d"] == pytest.approx(130.0)
