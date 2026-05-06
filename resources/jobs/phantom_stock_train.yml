@@ -1,0 +1,18 @@
+name: phantom-stock-train-${bundle.target}
+schedule:
+  quartz_cron_expression: "0 0 3 ? * SUN"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
+tasks:
+  - task_key: generate_labels
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_generate_labels
+    timeout_seconds: 3600
+  - task_key: train_model
+    depends_on:
+      - task_key: generate_labels
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_train_model
+    timeout_seconds: 7200

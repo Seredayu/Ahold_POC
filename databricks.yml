@@ -18,6 +18,10 @@ resources:
   jobs:
     lakeflow_trigger:
       source: resources/jobs/lakeflow_trigger.yml
+    phantom_stock_train:
+      source: resources/jobs/phantom_stock_train.yml
+    phantom_stock_score:
+      source: resources/jobs/phantom_stock_score.yml
 
 variables:
   workspace_url:

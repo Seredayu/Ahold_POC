@@ -1,0 +1,25 @@
+name: phantom-stock-score-${bundle.target}
+schedule:
+  quartz_cron_expression: "0 0 6 * * ?"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
+tasks:
+  - task_key: score_batch
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_score_batch
+    timeout_seconds: 1800
+  - task_key: write_alerts
+    depends_on:
+      - task_key: score_batch
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_write_alerts
+    timeout_seconds: 900
+  - task_key: bapi_writeback
+    depends_on:
+      - task_key: write_alerts
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_bapi_writeback
+    timeout_seconds: 1800
