@@ -31,7 +31,7 @@ class PhantomStockClassifier:
         self._model_version = model_version
 
     def load(self) -> None:
-        self._model = mlflow.pyfunc.load_model(
+        self._model = mlflow.xgboost.load_model(
             f"models:/{self.MODEL_NAME}/{self._model_version}"
         )
 
@@ -76,7 +76,7 @@ class PhantomStockClassifier:
             raise RuntimeError("Model not loaded. Call load() first.")
 
         pandas_df = features.toPandas()
-        scores = self._model.predict(pandas_df[self.FEATURE_COLUMNS])
+        scores = self._model.predict_proba(pandas_df[self.FEATURE_COLUMNS])[:, 1]
         pandas_df["phantom_score"] = scores.astype(float)
         pandas_df["is_phantom"] = pandas_df["phantom_score"] >= self.CONFIDENCE_THRESHOLD
 
