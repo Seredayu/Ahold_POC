@@ -91,3 +91,20 @@ def test_generate_labels_ignores_slow_movers(spark):
     )
     result = generate_labels(inventory, velocity).collect()
     assert result[0]["is_phantom"] == 0
+
+
+def test_generate_labels_null_stock_is_not_phantom(spark):
+    from engines.phantom_stock.label_generator import generate_labels
+
+    # NULL stock_qty → Spark three-valued logic yields NULL > 0 = NULL → not phantom
+    inventory = spark.createDataFrame(
+        [("1000", "SKU004", date(2024, 1, 1), None, "KG")],
+        INVENTORY_SCHEMA,
+    )
+    velocity = spark.createDataFrame(
+        [("1000", "SKU004", Decimal("0.000"), Decimal("0.000"),
+          Decimal("20.000"), Decimal("60.000"), "KG")],
+        VELOCITY_SCHEMA,
+    )
+    result = generate_labels(inventory, velocity).collect()
+    assert result[0]["is_phantom"] == 0

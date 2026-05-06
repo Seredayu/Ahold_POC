@@ -19,9 +19,9 @@ def generate_labels(
         .withColumn(
             "is_phantom",
             F.when(
-                (F.col("stock_qty") > 0)
-                & (F.col("sales_7d") == 0)
-                & (F.col("sales_28d") > 5),
+                (F.col("stock_qty") > F.lit(0).cast("decimal(13,3)"))
+                & (F.col("sales_7d") == F.lit(0).cast("decimal(13,3)"))
+                & (F.col("sales_28d") > F.lit(5).cast("decimal(13,3)")),
                 F.lit(1),
             ).otherwise(F.lit(0)).cast("int"),
         )
