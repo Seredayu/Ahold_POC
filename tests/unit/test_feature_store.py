@@ -107,3 +107,20 @@ def test_days_of_cover_null_when_sales_7d_zero(spark):
     )
     result = compute_stock_features(positions, velocity).collect()
     assert result[0]["days_of_cover"] is None
+
+
+def test_days_of_cover_computed_correctly(spark):
+    from src.medallion.feature_store.stock_features import compute_stock_features
+
+    # stock_qty=49, sales_7d=7 → days_of_cover = 49 / (7/7) = 49.00
+    positions = spark.createDataFrame(
+        [("1000", "5000100000001", date(2024, 1, 1), Decimal("49"), "KG")],
+        POSITIONS_SCHEMA,
+    )
+    velocity = spark.createDataFrame(
+        [("1000", "5000100000001", Decimal("7"), Decimal("14"),
+          Decimal("28"), Decimal("90"), "KG")],
+        VELOCITY_SCHEMA,
+    )
+    result = compute_stock_features(positions, velocity).collect()
+    assert result[0]["days_of_cover"] == Decimal("49.00")
