@@ -7,6 +7,7 @@ def build_prophet_features(series: pd.DataFrame) -> pd.DataFrame:
     Returns the same rows with three added columns: trend, weekly, yearly.
     Raises ValueError if fewer than 14 rows (Prophet minimum).
     """
+    # Prophet has a 2–3s import overhead; lazy-load to avoid penalising every Databricks task that imports this module
     from prophet import Prophet
 
     if len(series) < 14:

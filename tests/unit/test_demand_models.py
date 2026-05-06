@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pytest
 
 
 def test_prophet_features_produces_trend_weekly_yearly():
@@ -18,3 +19,11 @@ def test_prophet_features_produces_trend_weekly_yearly():
     assert result["trend"].notna().all()
     assert result["weekly"].notna().all()
     assert result["yearly"].notna().all()
+
+
+def test_prophet_features_raises_on_short_series():
+    from engines.demand.prophet_features import build_prophet_features
+
+    short = pd.DataFrame({"ds": pd.date_range("2024-01-01", periods=13, freq="D"), "y": range(13)})
+    with pytest.raises(ValueError, match="Prophet requires"):
+        build_prophet_features(short)
