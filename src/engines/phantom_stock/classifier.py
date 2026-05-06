@@ -1,6 +1,6 @@
 import mlflow
 import pandas as pd
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
 
@@ -52,7 +52,6 @@ class PhantomStockClassifier:
                 max_depth=6,
                 learning_rate=0.05,
                 eval_metric="logloss",
-                use_label_encoder=False,
             )
             model.fit(X_train, y_train)
             mlflow.xgboost.log_model(
@@ -74,6 +73,8 @@ class PhantomStockClassifier:
         """
         if self._model is None:
             raise RuntimeError("Model not loaded. Call load() first.")
+        if features.rdd.isEmpty():
+            raise ValueError("predict() received an empty DataFrame — check upstream feature pipeline.")
 
         pandas_df = features.toPandas()
         scores = self._model.predict_proba(pandas_df[self.FEATURE_COLUMNS])[:, 1]
@@ -93,7 +94,7 @@ class PhantomStockClassifier:
             "werks", "unified_sku_id", "phantom_score",
             "is_phantom", "action", "shelf_life_days",
         ]
-        result = features.sparkSession.createDataFrame(pandas_df[result_cols])
+        result = SparkSession.getActiveSession().createDataFrame(pandas_df[result_cols])
         return result.withColumn("_scored_at", F.current_timestamp())
 
 
