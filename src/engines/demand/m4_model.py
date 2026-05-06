@@ -63,6 +63,8 @@ class M4UncertaintyModel:
         """
         if not self._models:
             raise RuntimeError("Models not loaded. Call load() first.")
+        if m2_forecast.rdd.isEmpty():
+            raise ValueError("score() received an empty M2 forecast DataFrame — check upstream m2_corrected table.")
 
         pandas_df = m2_forecast.toPandas()
         base = pandas_df["corrected_7d"].values.astype(float)

@@ -156,7 +156,9 @@ def _entry_train_m2() -> None:
             promo_merged["actual_7d"] / promo_merged["baseline_demand"].clip(lower=1.0)
         ).clip(0.5, 2.0)
         lift_coef = promo_merged.groupby(["werks", "unified_sku_id"])["promo_lift"].mean().reset_index()
-    except Exception:
+    except Exception as exc:
+        if "TABLE_OR_VIEW_NOT_FOUND" not in str(exc) and "AnalysisException" not in type(exc).__name__:
+            raise
         # silver.promo.calendar not yet populated — default all lift coefficients to 1.0
         lift_coef = (
             spark.table("feature_store.demand.m1_forecast")
