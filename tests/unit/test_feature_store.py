@@ -191,7 +191,12 @@ def test_days_since_last_sale_computed_correctly(spark):
         VELOCITY_SCHEMA,
     )
     movements = spark.createDataFrame(
-        [("1000", "5000100000001", "601", date(2024, 1, 1), Decimal("3"))],
+        [
+            # BWART 601 = delivery to customer (counted)
+            ("1000", "5000100000001", "601", date(2024, 1, 1), Decimal("3")),
+            # BWART 101 = goods receipt (must be excluded from days_since_last_sale)
+            ("1000", "5000100000001", "101", date(2025, 12, 31), Decimal("10")),
+        ],
         MOVEMENTS_SCHEMA,
     )
     registry = spark.createDataFrame(
@@ -203,6 +208,8 @@ def test_days_since_last_sale_computed_correctly(spark):
     row = result[0]
     # days_since_last_sale must be a non-negative integer — exact value depends on
     # when the test runs, so we verify type and bound only.
+    # The BWART=101 row (more recent date) must be excluded; only the 601 row counts.
     assert row["days_since_last_sale"] is not None
     assert isinstance(row["days_since_last_sale"], int)
     assert row["days_since_last_sale"] >= 0
+    assert row["shelf_life_days"] == 7
