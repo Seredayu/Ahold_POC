@@ -40,14 +40,14 @@ REGISTRY_SCHEMA = StructType([
 
 def test_velocity_run_adds_computed_at(spark):
     from unittest.mock import patch
-    from src.medallion.feature_store.velocity_features import VelocityFeaturesWriter
+    from medallion.feature_store.velocity_features import VelocityFeaturesWriter
 
     captured = {}
 
-    def fake_write_table(name, df, mode):
+    def fake_write_table(name, df, mode, **kwargs):
         captured["cols"] = df.columns
 
-    with patch("src.medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
+    with patch("medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
         MockFS.return_value.write_table.side_effect = fake_write_table
 
         class _Stub(VelocityFeaturesWriter):
@@ -65,14 +65,14 @@ def test_velocity_run_adds_computed_at(spark):
 
 def test_stock_run_adds_computed_at(spark):
     from unittest.mock import patch
-    from src.medallion.feature_store.stock_features import StockFeaturesWriter
+    from medallion.feature_store.stock_features import StockFeaturesWriter
 
     captured = {}
 
-    def fake_write_table(name, df, mode):
+    def fake_write_table(name, df, mode, **kwargs):
         captured["cols"] = df.columns
 
-    with patch("src.medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
+    with patch("medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
         MockFS.return_value.write_table.side_effect = fake_write_table
 
         class _Stub(StockFeaturesWriter):
@@ -94,7 +94,7 @@ def test_stock_run_adds_computed_at(spark):
 
 
 def test_days_of_cover_null_when_sales_7d_zero(spark):
-    from src.medallion.feature_store.stock_features import compute_stock_features
+    from medallion.feature_store.stock_features import compute_stock_features
 
     positions = spark.createDataFrame(
         [("1000", "5000100000001", date(2024, 1, 1), Decimal("50"), "KG")],
@@ -110,7 +110,7 @@ def test_days_of_cover_null_when_sales_7d_zero(spark):
 
 
 def test_days_of_cover_computed_correctly(spark):
-    from src.medallion.feature_store.stock_features import compute_stock_features
+    from medallion.feature_store.stock_features import compute_stock_features
 
     # stock_qty=49, sales_7d=7 → days_of_cover = 49 / (7/7) = 49.00
     positions = spark.createDataFrame(
@@ -133,14 +133,14 @@ def test_days_of_cover_computed_correctly(spark):
 def test_collapse_run_adds_computed_at(spark):
     from unittest.mock import patch
     from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType
-    from src.medallion.feature_store.collapse_signals import CollapseSignalsWriter
+    from medallion.feature_store.collapse_signals import CollapseSignalsWriter
 
     captured = {}
 
-    def fake_write_table(name, df, mode):
+    def fake_write_table(name, df, mode, **kwargs):
         captured["cols"] = df.columns
 
-    with patch("src.medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
+    with patch("medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
         MockFS.return_value.write_table.side_effect = fake_write_table
 
         class _Stub(CollapseSignalsWriter):
@@ -162,7 +162,7 @@ def test_collapse_run_adds_computed_at(spark):
 
 
 def test_velocity_collapse_ratio_null_when_sales_28d_zero(spark):
-    from src.medallion.feature_store.collapse_signals import compute_collapse_signals
+    from medallion.feature_store.collapse_signals import compute_collapse_signals
 
     velocity = spark.createDataFrame(
         [("1000", "5000100000001", Decimal("5"), Decimal("10"),
@@ -183,7 +183,7 @@ def test_velocity_collapse_ratio_null_when_sales_28d_zero(spark):
 
 
 def test_days_since_last_sale_computed_correctly(spark):
-    from src.medallion.feature_store.collapse_signals import compute_collapse_signals
+    from medallion.feature_store.collapse_signals import compute_collapse_signals
 
     velocity = spark.createDataFrame(
         [("1000", "5000100000001", Decimal("5"), Decimal("10"),

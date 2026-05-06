@@ -26,4 +26,5 @@ class FeatureStoreBase(ABC):
             name=f"{self.catalog}.{self.feature_table_name()}",
             df=df,
             mode="overwrite",
+            primary_keys=self.primary_keys(),
         )
