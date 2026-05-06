@@ -67,6 +67,8 @@ class M1DemandModel:
         """
         if not self._models:
             raise RuntimeError("Models not loaded. Call load() first.")
+        if features.rdd.isEmpty():
+            raise ValueError("score() received an empty DataFrame — check upstream feature pipeline.")
 
         pandas_df = features.toPandas()
         for horizon in self.HORIZONS:
