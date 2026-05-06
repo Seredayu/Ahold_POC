@@ -1,9 +1,9 @@
 from databricks.feature_engineering import FeatureEngineeringClient
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 
-def load_features(spark: SparkSession) -> DataFrame:
+def load_features() -> DataFrame:
     """
     Load all three Phase 2A feature tables from FEU and join on (werks, unified_sku_id).
     Returns a single DataFrame ready for PhantomStockClassifier.predict().
@@ -26,13 +26,11 @@ def load_features(spark: SparkSession) -> DataFrame:
 
 
 def _entry_score_batch() -> None:
-    from pyspark.sql import SparkSession
     from engines.phantom_stock.classifier import PhantomStockClassifier
 
-    spark = SparkSession.getActiveSession()
     clf = PhantomStockClassifier()
     clf.load()
-    features = load_features(spark)
+    features = load_features()
     scores = clf.predict(features)
     # Persist scores for downstream write_alerts task
     scores.write.format("delta").mode("overwrite").saveAsTable(

@@ -104,7 +104,7 @@ def _entry_train_model() -> None:
 
     spark = SparkSession.getActiveSession()
     labels = spark.table("gold.phantom_stock.training_labels")
-    features = load_features(spark)
+    features = load_features()
 
     training_data = (
         labels.select("werks", "unified_sku_id", "is_phantom")
