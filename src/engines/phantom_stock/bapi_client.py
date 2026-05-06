@@ -53,7 +53,7 @@ class BAPIClient:
             if response.ok:
                 return response.json() if response.content else {}
 
-        if last_exc is not None:
+        if response is None:
             raise BAPIError(
                 f"BAPI_GOODSMVT_CREATE failed after {1 + len(_RETRY_DELAYS)} attempts: "
                 f"{last_exc}"
