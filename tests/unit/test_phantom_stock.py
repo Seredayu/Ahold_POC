@@ -117,7 +117,7 @@ def test_predict_auto_corrected_for_high_score(spark):
 
     clf = PhantomStockClassifier()
     mock_model = MagicMock()
-    mock_model.predict.return_value = np.array([0.97])
+    mock_model.predict_proba.return_value = np.array([[0.03, 0.97]])
     clf._model = mock_model
 
     # Row with all 8 feature columns + identity + shelf_life context
@@ -137,7 +137,7 @@ def test_predict_pending_review_for_mid_score(spark):
 
     clf = PhantomStockClassifier()
     mock_model = MagicMock()
-    mock_model.predict.return_value = np.array([0.88])
+    mock_model.predict_proba.return_value = np.array([[0.12, 0.88]])
     clf._model = mock_model
 
     row = ("1000", "SKU002", 0.0, 0.0, 10.0, 40.0, 50.0, None, 0.0, 21, 5)
