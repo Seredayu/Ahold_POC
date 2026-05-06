@@ -67,7 +67,13 @@ class M2CorrectionModel:
         if self._weather_model is None:
             raise RuntimeError("Model not loaded. Call load() first.")
 
-        weather_pdf = weather_df.orderBy("forecast_date").limit(7).toPandas()
+        weather_pdf = (
+            weather_df
+            .withColumn("forecast_date", F.to_date(F.col("forecast_date")))
+            .orderBy("forecast_date")
+            .limit(7)
+            .toPandas()
+        )
         if weather_pdf.empty:
             raise RuntimeError("No weather forecast rows in bronze.weather.daily_forecast.")
 
@@ -114,7 +120,6 @@ class M2CorrectionModel:
 def _entry_train_m2() -> None:
     from pyspark.sql import SparkSession
     from pyspark.sql import functions as F
-    from engines.demand.m2_model import M2CorrectionModel
 
     spark = SparkSession.getActiveSession()
 
@@ -169,7 +174,6 @@ def _entry_train_m2() -> None:
 
 def _entry_score_m2() -> None:
     from pyspark.sql import SparkSession
-    from engines.demand.m2_model import M2CorrectionModel
 
     spark = SparkSession.getActiveSession()
     m1_forecast = spark.table("feature_store.demand.m1_forecast")
