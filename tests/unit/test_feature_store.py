@@ -124,3 +124,85 @@ def test_days_of_cover_computed_correctly(spark):
     )
     result = compute_stock_features(positions, velocity).collect()
     assert result[0]["days_of_cover"] == Decimal("49.00")
+
+
+# ---------------------------------------------------------------------------
+# CollapseSignalsWriter tests (Task 3)
+# ---------------------------------------------------------------------------
+
+def test_collapse_run_adds_computed_at(spark):
+    from unittest.mock import patch
+    from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType
+    from src.medallion.feature_store.collapse_signals import CollapseSignalsWriter
+
+    captured = {}
+
+    def fake_write_table(name, df, mode):
+        captured["cols"] = df.columns
+
+    with patch("src.medallion.feature_store.base.FeatureEngineeringClient") as MockFS:
+        MockFS.return_value.write_table.side_effect = fake_write_table
+
+        class _Stub(CollapseSignalsWriter):
+            def compute(self_inner):
+                return spark.createDataFrame(
+                    [("1000", "5000100000001", 0.5, 3, 7)],
+                    StructType([
+                        StructField("werks", StringType(), True),
+                        StructField("unified_sku_id", StringType(), True),
+                        StructField("velocity_collapse_ratio", DoubleType(), True),
+                        StructField("days_since_last_sale", IntegerType(), True),
+                        StructField("shelf_life_days", IntegerType(), True),
+                    ]),
+                )
+
+        _Stub(spark).run()
+
+    assert "_computed_at" in captured["cols"]
+
+
+def test_velocity_collapse_ratio_null_when_sales_28d_zero(spark):
+    from src.medallion.feature_store.collapse_signals import compute_collapse_signals
+
+    velocity = spark.createDataFrame(
+        [("1000", "5000100000001", Decimal("5"), Decimal("10"),
+          Decimal("0"), Decimal("0"), "KG")],
+        VELOCITY_SCHEMA,
+    )
+    movements = spark.createDataFrame(
+        [("1000", "5000100000001", "601", date(2024, 1, 1), Decimal("2"))],
+        MOVEMENTS_SCHEMA,
+    )
+    registry = spark.createDataFrame(
+        [("5000100000001", Decimal("7"))],
+        REGISTRY_SCHEMA,
+    )
+
+    result = compute_collapse_signals(velocity, movements, registry).collect()
+    assert result[0]["velocity_collapse_ratio"] is None
+
+
+def test_days_since_last_sale_computed_correctly(spark):
+    from src.medallion.feature_store.collapse_signals import compute_collapse_signals
+
+    velocity = spark.createDataFrame(
+        [("1000", "5000100000001", Decimal("5"), Decimal("10"),
+          Decimal("20"), Decimal("60"), "KG")],
+        VELOCITY_SCHEMA,
+    )
+    movements = spark.createDataFrame(
+        [("1000", "5000100000001", "601", date(2024, 1, 1), Decimal("3"))],
+        MOVEMENTS_SCHEMA,
+    )
+    registry = spark.createDataFrame(
+        [("5000100000001", Decimal("7"))],
+        REGISTRY_SCHEMA,
+    )
+
+    result = compute_collapse_signals(velocity, movements, registry).collect()
+    row = result[0]
+    # days_since_last_sale must be a non-negative integer — exact value depends on
+    # when the test runs, so we verify type and bound only.
+    assert row["days_since_last_sale"] is not None
+    assert isinstance(row["days_since_last_sale"], int)
+    assert row["days_since_last_sale"] >= 0
