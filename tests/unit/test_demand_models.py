@@ -117,3 +117,53 @@ def test_m2_promo_lift_above_one_for_active_promo(spark):
     result = model.score(m1_df, weather_df, promo_df).collect()
     assert result[0]["promo_lift"] == pytest.approx(1.3)
     assert result[0]["corrected_7d"] == pytest.approx(130.0)
+
+
+def test_m4_p90_greater_than_p50_greater_than_p10(spark):
+    import numpy as np
+    from unittest.mock import MagicMock
+    from engines.demand.m4_model import M4UncertaintyModel
+
+    model = M4UncertaintyModel()
+    mock_p10 = MagicMock()
+    mock_p50 = MagicMock()
+    mock_p90 = MagicMock()
+    mock_p10.predict.return_value = np.array([-50.0])
+    mock_p50.predict.return_value = np.array([0.0])
+    mock_p90.predict.return_value = np.array([50.0])
+    model._models = {"p10": mock_p10, "p50": mock_p50, "p90": mock_p90}
+
+    m2_df = spark.createDataFrame(
+        [("1000", "SKU001", 100.0, 200.0, 400.0, 1.0, 1.0)],
+        ["werks", "unified_sku_id", "corrected_7d", "corrected_14d",
+         "corrected_28d", "promo_lift", "weather_lift"],
+    )
+
+    result = model.score(m2_df).collect()
+    assert result[0]["p90"] > result[0]["p50"]
+    assert result[0]["p50"] > result[0]["p10"]
+
+
+def test_m4_uncertainty_spread_equals_p90_minus_p10(spark):
+    import numpy as np
+    from unittest.mock import MagicMock
+    from engines.demand.m4_model import M4UncertaintyModel
+
+    model = M4UncertaintyModel()
+    mock_p10 = MagicMock()
+    mock_p50 = MagicMock()
+    mock_p90 = MagicMock()
+    mock_p10.predict.return_value = np.array([-50.0])
+    mock_p50.predict.return_value = np.array([0.0])
+    mock_p90.predict.return_value = np.array([50.0])
+    model._models = {"p10": mock_p10, "p50": mock_p50, "p90": mock_p90}
+
+    m2_df = spark.createDataFrame(
+        [("1000", "SKU001", 100.0, 200.0, 400.0, 1.0, 1.0)],
+        ["werks", "unified_sku_id", "corrected_7d", "corrected_14d",
+         "corrected_28d", "promo_lift", "weather_lift"],
+    )
+
+    result = model.score(m2_df).collect()
+    expected_spread = result[0]["p90"] - result[0]["p10"]
+    assert result[0]["uncertainty_spread"] == pytest.approx(expected_spread)
