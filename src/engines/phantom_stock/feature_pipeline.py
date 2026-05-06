@@ -44,10 +44,12 @@ def _entry_write_alerts() -> None:
     spark = SparkSession.getActiveSession()
     scores = spark.table("gold.phantom_stock.scores")
 
-    # Full overwrite — consumed daily by Phase 4 React app exception queue
-    scores.write.format("delta").mode("overwrite").saveAsTable(
-        "gold.phantom_stock.alerts"
-    )
+    # Full overwrite — only actionable rows (AUTO_CORRECTED + PENDING_REVIEW)
+    # consumed daily by Phase 4 React app exception queue
+    scores.filter(F.col("action") != "BELOW_THRESHOLD") \
+          .write.format("delta").mode("overwrite").saveAsTable(
+              "gold.phantom_stock.alerts"
+          )
 
     # Append-only review queue — manager resolves via Phase 4 app
     review = scores.filter(F.col("action") == "PENDING_REVIEW").select(
@@ -74,11 +76,19 @@ def _entry_bapi_writeback() -> None:
     endpoint = dbutils.secrets.get(scope="sap-btp", key="ai-core-endpoint")
     client = BAPIClient(endpoint_url=endpoint, token=token)
 
+    _AUTO_CORRECT_SANITY_CAP = 500  # anomalous wave threshold — phantom events above this likely indicate model drift
+
     auto_rows = (
         spark.table("gold.phantom_stock.alerts")
         .filter(F.col("action") == "AUTO_CORRECTED")
         .collect()
     )
+
+    if len(auto_rows) > _AUTO_CORRECT_SANITY_CAP:
+        raise RuntimeError(
+            f"AUTO_CORRECTED count {len(auto_rows)} exceeds sanity cap {_AUTO_CORRECT_SANITY_CAP}. "
+            "Possible model drift — aborting BAPI writeback. Review gold.phantom_stock.alerts."
+        )
 
     mlflow.set_experiment("phantom_stock_bapi_writeback")
     with mlflow.start_run():

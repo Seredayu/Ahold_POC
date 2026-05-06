@@ -76,6 +76,9 @@ class PhantomStockClassifier:
         if features.rdd.isEmpty():
             raise ValueError("predict() received an empty DataFrame — check upstream feature pipeline.")
 
+        import json
+        import shap
+
         pandas_df = features.toPandas()
         scores = self._model.predict_proba(pandas_df[self.FEATURE_COLUMNS])[:, 1]
         pandas_df["phantom_score"] = scores.astype(float)
@@ -90,9 +93,17 @@ class PhantomStockClassifier:
 
         pandas_df["action"] = pandas_df["phantom_score"].apply(_action)
 
+        # Per-row SHAP values — consumed by React ShapWaterfall component per exception
+        explainer = shap.TreeExplainer(self._model)
+        shap_matrix = explainer.shap_values(pandas_df[self.FEATURE_COLUMNS])
+        pandas_df["shap_values"] = [
+            json.dumps(dict(zip(self.FEATURE_COLUMNS, row.tolist())))
+            for row in shap_matrix
+        ]
+
         result_cols = [
             "werks", "unified_sku_id", "phantom_score",
-            "is_phantom", "action", "shelf_life_days",
+            "is_phantom", "action", "shelf_life_days", "shap_values",
         ]
         result = SparkSession.getActiveSession().createDataFrame(pandas_df[result_cols])
         return result.withColumn("_scored_at", F.current_timestamp())
