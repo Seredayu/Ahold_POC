@@ -18,6 +18,8 @@ resources:
   jobs:
     lakeflow_trigger:
       source: resources/jobs/lakeflow_trigger.yml
+    feature_store_refresh:
+      source: resources/jobs/feature_store_refresh.yml
 
 variables:
   workspace_url:

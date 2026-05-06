@@ -1,0 +1,21 @@
+name: feature-store-refresh-${bundle.target}
+schedule:
+  quartz_cron_expression: "0 30 5 * * ?"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
+tasks:
+  - task_key: velocity_features
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: fs_velocity_features
+    timeout_seconds: 1800
+  - task_key: stock_features
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: fs_stock_features
+    timeout_seconds: 1800
+  - task_key: collapse_signals
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: fs_collapse_signals
+    timeout_seconds: 1800
