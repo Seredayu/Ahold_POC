@@ -52,7 +52,12 @@ class POClient(BAPIClient):
                 last_exc = exc
                 continue
             if response.ok:
-                data = response.json() if response.content else {}
+                try:
+                    data = response.json() if response.content else {}
+                except requests.exceptions.JSONDecodeError as exc:
+                    raise BAPIError(
+                        f"BAPI_PO_CREATE1 returned non-JSON 200 response: {response.text[:200]}"
+                    ) from exc
                 if "PO_NUMBER" not in data:
                     raise BAPIError(
                         f"BAPI_PO_CREATE1 succeeded but returned no PO_NUMBER: {data}"

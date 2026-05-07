@@ -81,6 +81,59 @@ def test_ttl_soft_cap_bakery():
     assert result.recommended_qty == 30
 
 
+def test_ttl_bakery_hard_block_when_ratio_at_or_above_one():
+    from engines.freshness.solver_interface import OrderRecommendation, SolverInput
+    from engines.freshness.ttl_policy import apply_ttl_policy
+
+    # transit_to_life_ratio = 1.0 (transit_days == shelf_life_days)
+    # reduced_qty = max(0, round(80 * (1.0 - 1.0))) = 0 → fall-through to HARD_BLOCK
+    rec = OrderRecommendation(
+        sku_id="SKU004", site_id="1000",
+        recommended_qty=80, transit_to_life_ratio=1.0,
+        blocked=False, solver_status="Optimal",
+    )
+    inp = SolverInput(
+        sku_id="SKU004", site_id="1000",
+        demand_p10=40.0, demand_p50=80.0, demand_p90=120.0,
+        current_stock=10, shelf_life_days=5, transit_days=5,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="BAKERY", unit_cost=1.5,
+    )
+    result = apply_ttl_policy(rec, inp)
+
+    assert result.blocked is True
+    assert result.recommended_qty == 0
+    assert result.ttl_policy_applied == "HARD_BLOCK"
+    assert result.solver_status == "BLOCKED_TRANSIT_TO_LIFE"
+
+
+def test_ttl_bakery_hard_block_when_ratio_exceeds_one():
+    from engines.freshness.solver_interface import OrderRecommendation, SolverInput
+    from engines.freshness.ttl_policy import apply_ttl_policy
+
+    # transit_to_life_ratio = 1.5 (transit_days > shelf_life_days)
+    # reduced_qty = max(0, round(80 * (1.0 - 1.5))) = max(0, round(-40)) = 0 → HARD_BLOCK
+    rec = OrderRecommendation(
+        sku_id="SKU005", site_id="1000",
+        recommended_qty=80, transit_to_life_ratio=1.5,
+        blocked=False, solver_status="Optimal",
+    )
+    inp = SolverInput(
+        sku_id="SKU005", site_id="1000",
+        demand_p10=40.0, demand_p50=80.0, demand_p90=120.0,
+        current_stock=10, shelf_life_days=2, transit_days=3,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="BAKERY", unit_cost=1.5,
+    )
+    result = apply_ttl_policy(rec, inp)
+
+    assert result.blocked is True
+    assert result.recommended_qty == 0
+    assert result.ttl_policy_applied == "HARD_BLOCK"
+
+
 # ---------------------------------------------------------------------------
 # Task 3 — Approval Gate
 # ---------------------------------------------------------------------------
@@ -212,3 +265,29 @@ def test_po_client_raises_bapi_error_on_http_500():
             client.create_purchase_order("1000", "SKU001", 50)
 
     assert "500" in str(exc_info.value)
+
+
+def test_approval_gate_blocked_passthrough():
+    from engines.freshness.solver_interface import OrderRecommendation, SolverInput
+    from engines.freshness.approval_gate import ApprovalGate
+
+    # Already-blocked recommendations must pass through with approval_status="BLOCKED",
+    # never AUTO_APPROVED — this is the safety gate before _entry_bapi_po_create.
+    rec = OrderRecommendation(
+        sku_id="SKU006", site_id="1000",
+        recommended_qty=0, transit_to_life_ratio=0.8,
+        blocked=True, solver_status="BLOCKED_TRANSIT_TO_LIFE",
+    )
+    inp = SolverInput(
+        sku_id="SKU006", site_id="1000",
+        demand_p10=40.0, demand_p50=80.0, demand_p90=120.0,
+        current_stock=10, shelf_life_days=5, transit_days=4,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="FRESH_PRODUCE", unit_cost=2.0,
+    )
+    result = ApprovalGate().evaluate(rec, inp)
+
+    assert result.approval_status == "BLOCKED"
+    assert result.blocked is True
+    assert result.recommended_qty == 0

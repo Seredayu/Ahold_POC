@@ -146,7 +146,7 @@ def _entry_write_recommendations() -> None:
         "gold.replenishment.order_recommendations"
     )
 
-    pandas_recs = recs.toPandas()
+    pandas_recs = spark.table("gold.replenishment.order_recommendations").toPandas()
     mlflow.set_experiment("freshness_orchestrator")
     with mlflow.start_run():
         mlflow.log_metric(
