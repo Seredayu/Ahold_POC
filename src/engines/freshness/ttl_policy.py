@@ -42,8 +42,19 @@ def apply_ttl_policy(recommendation, solver_input, policy_map=None):
             ttl_policy_applied="HARD_BLOCK",
         )
 
-    # Soft cap: scale quantity down proportionally to remaining shelf-life fraction
-    reduced_qty = round(recommendation.recommended_qty * (1.0 - ratio))
+    # Soft cap: scale quantity down proportionally to remaining shelf-life fraction.
+    # Clamp to 0 — ratio > 1.0 (transit_days > shelf_life_days) would otherwise produce
+    # a negative quantity. When clamped to 0, fall through to hard block so no negative
+    # or zero-quantity soft-cap recommendations reach gold tables.
+    reduced_qty = max(0, round(recommendation.recommended_qty * (1.0 - ratio)))
+    if reduced_qty == 0:
+        return dataclasses.replace(
+            recommendation,
+            recommended_qty=0,
+            blocked=True,
+            solver_status="BLOCKED_TRANSIT_TO_LIFE",
+            ttl_policy_applied="HARD_BLOCK",
+        )
     return dataclasses.replace(
         recommendation,
         recommended_qty=reduced_qty,
