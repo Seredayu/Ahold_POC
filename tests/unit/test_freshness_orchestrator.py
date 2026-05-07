@@ -189,3 +189,26 @@ def test_pulp_solver_produces_optimal_recommendation():
     assert result.recommended_qty >= 80
     assert result.ttl_policy_applied == "PASS"
     assert result.blocked is False
+
+
+# ---------------------------------------------------------------------------
+# Task 5 — POClient
+# ---------------------------------------------------------------------------
+
+def test_po_client_raises_bapi_error_on_http_500():
+    from unittest.mock import patch, MagicMock
+    from engines.freshness.po_client import POClient
+    from engines.phantom_stock.bapi_client import BAPIError
+
+    mock_response = MagicMock()
+    mock_response.ok = False
+    mock_response.status_code = 500
+    mock_response.text = "Internal Server Error"
+
+    with patch("engines.freshness.po_client.requests.post", return_value=mock_response), \
+         patch("engines.freshness.po_client.time.sleep"):
+        client = POClient("https://fake-btp-endpoint", "fake-token")
+        with pytest.raises(BAPIError) as exc_info:
+            client.create_purchase_order("1000", "SKU001", 50)
+
+    assert "500" in str(exc_info.value)
