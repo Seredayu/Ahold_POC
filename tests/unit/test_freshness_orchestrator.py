@@ -79,3 +79,85 @@ def test_ttl_soft_cap_bakery():
     assert result.ttl_policy_applied == "SOFT_CAP"
     assert result.recommended_qty < 80  # reduced: round(80 * (1 - 0.625)) = 30
     assert result.recommended_qty == 30
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — Approval Gate
+# ---------------------------------------------------------------------------
+
+def test_approval_gate_auto_approved():
+    from engines.freshness.solver_interface import OrderRecommendation, SolverInput
+    from engines.freshness.approval_gate import ApprovalGate
+
+    # uncertainty_spread = 110 - 90 = 20; confidence_ratio = 20/100 = 0.20 < 0.30 → pass
+    # order_value = 10 * 30.0 = €300 < €500 → pass
+    rec = OrderRecommendation(
+        sku_id="SKU001", site_id="1000",
+        recommended_qty=10, transit_to_life_ratio=0.3,
+        blocked=False, solver_status="Optimal",
+    )
+    inp = SolverInput(
+        sku_id="SKU001", site_id="1000",
+        demand_p10=90.0, demand_p50=100.0, demand_p90=110.0,
+        current_stock=50, shelf_life_days=10, transit_days=3,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="FRESH_PRODUCE", unit_cost=30.0,
+    )
+    result = ApprovalGate().evaluate(rec, inp)
+
+    assert result.approval_status == "AUTO_APPROVED"
+    assert result.approval_reason is None
+    assert abs(result.confidence_ratio - 0.20) < 1e-9
+    assert abs(result.order_value - 300.0) < 1e-9
+
+
+def test_approval_gate_pending_high_uncertainty():
+    from engines.freshness.solver_interface import OrderRecommendation, SolverInput
+    from engines.freshness.approval_gate import ApprovalGate
+
+    # uncertainty_spread = 140 - 60 = 80; confidence_ratio = 80/100 = 0.80 >= 0.30 -> fail
+    rec = OrderRecommendation(
+        sku_id="SKU002", site_id="1000",
+        recommended_qty=10, transit_to_life_ratio=0.3,
+        blocked=False, solver_status="Optimal",
+    )
+    inp = SolverInput(
+        sku_id="SKU002", site_id="1000",
+        demand_p10=60.0, demand_p50=100.0, demand_p90=140.0,
+        current_stock=50, shelf_life_days=10, transit_days=3,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="FRESH_PRODUCE", unit_cost=5.0,
+    )
+    result = ApprovalGate().evaluate(rec, inp)
+
+    assert result.approval_status == "PENDING_REVIEW"
+    assert result.approval_reason is not None
+    assert "HIGH_UNCERTAINTY" in result.approval_reason
+
+
+def test_approval_gate_pending_high_value():
+    from engines.freshness.solver_interface import OrderRecommendation, SolverInput
+    from engines.freshness.approval_gate import ApprovalGate
+
+    # confidence_ratio = 20/100 = 0.20 < 0.30 -> pass
+    # order_value = 20 * 30.0 = €600 >= €500 -> fail
+    rec = OrderRecommendation(
+        sku_id="SKU003", site_id="1000",
+        recommended_qty=20, transit_to_life_ratio=0.3,
+        blocked=False, solver_status="Optimal",
+    )
+    inp = SolverInput(
+        sku_id="SKU003", site_id="1000",
+        demand_p10=90.0, demand_p50=100.0, demand_p90=110.0,
+        current_stock=50, shelf_life_days=10, transit_days=3,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="FRESH_PRODUCE", unit_cost=30.0,
+    )
+    result = ApprovalGate().evaluate(rec, inp)
+
+    assert result.approval_status == "PENDING_REVIEW"
+    assert result.approval_reason is not None
+    assert "HIGH_VALUE" in result.approval_reason
