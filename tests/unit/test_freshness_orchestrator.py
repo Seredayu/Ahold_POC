@@ -161,3 +161,31 @@ def test_approval_gate_pending_high_value():
     assert result.approval_status == "PENDING_REVIEW"
     assert result.approval_reason is not None
     assert "HIGH_VALUE" in result.approval_reason
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — PuLP Solver end-to-end
+# ---------------------------------------------------------------------------
+
+def test_pulp_solver_produces_optimal_recommendation():
+    from engines.freshness.solver_interface import SolverInput
+    from engines.freshness.replenishment_quantity_optimizer import PuLPCBCSolver
+
+    # demand_p90=100, current_stock=20 -> net_need=80; transit_to_life=2/10=0.20 < 0.50 -> PASS
+    inp = SolverInput(
+        sku_id="SKU001", site_id="1000",
+        demand_p10=60.0, demand_p50=80.0, demand_p90=100.0,
+        current_stock=20, shelf_life_days=10, transit_days=2,
+        min_order_qty=1, max_order_qty=200,
+        truck_capacity_remaining=1000.0,
+        category="FRESH_PRODUCE", unit_cost=5.0,
+    )
+    solver = PuLPCBCSolver()
+    results = solver.solve([inp])
+
+    assert len(results) == 1
+    result = results[0]
+    assert result.solver_status == "Optimal"
+    assert result.recommended_qty >= 80
+    assert result.ttl_policy_applied == "PASS"
+    assert result.blocked is False
