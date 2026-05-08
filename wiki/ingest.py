@@ -5,10 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-try:
-    import anthropic as _anthropic_module
-except ImportError:
-    _anthropic_module = None  # type: ignore[assignment]
+import anthropic
 
 WIKI_DIR = Path(__file__).parent
 RESEARCH_DIR = WIKI_DIR.parent / 'research'
@@ -57,15 +54,6 @@ def load_existing_pages() -> dict:
 def _log_error(filepath: Path, error) -> None:
     with open(ERRORS_LOG, 'a', encoding='utf-8') as f:
         f.write(f"{datetime.now().isoformat()} {filepath}: {error}\n")
-
-
-def _require_anthropic():
-    if _anthropic_module is None:
-        raise ImportError(
-            "anthropic package is required for API calls. "
-            "Install it with: pip install anthropic"
-        )
-    return _anthropic_module
 
 
 def ingest_file(filepath: Path, manifest: dict, client) -> None:
@@ -201,8 +189,6 @@ def check_and_ingest_all(client) -> int:
 
 
 def main() -> None:
-    anthropic = _require_anthropic()
-
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
         print('ANTHROPIC_API_KEY not set', file=sys.stderr)
