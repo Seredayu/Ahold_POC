@@ -12,6 +12,7 @@ from watchdog.observers import Observer
 
 RESEARCH_DIR = Path(__file__).parent.parent / 'research'
 INGEST_SCRIPT = Path(__file__).parent / 'ingest.py'
+WIKI_DIR = Path(__file__).parent
 DEBOUNCE_SECONDS = 3
 
 
@@ -41,7 +42,10 @@ class ResearchHandler(FileSystemEventHandler):
                 del self._pending[path]
         for path in ready:
             print(f'Wiki: ingesting {Path(path).name}...')
-            result = subprocess.run([sys.executable, str(INGEST_SCRIPT), path], check=False)
+            result = subprocess.run(
+                ['uv', 'run', '--project', str(WIKI_DIR), 'python', str(INGEST_SCRIPT), path],
+                check=False,
+            )
             if result.returncode != 0:
                 with self._lock:
                     self._pending[path] = time.time()  # re-enqueue for retry
