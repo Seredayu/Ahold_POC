@@ -42,18 +42,25 @@ class ApproveRequest(BaseModel):
 
 
 def get_databricks_connection():
+    import databricks.sql
     host = os.environ.get("DATABRICKS_HOST")
     token = os.environ.get("DATABRICKS_TOKEN")
     http_path = os.environ.get("DATABRICKS_HTTP_PATH")
     if not host or not token or not http_path:
         raise RuntimeError("DATABRICKS_HOST, DATABRICKS_TOKEN, and DATABRICKS_HTTP_PATH must be set")
-    import databricks.sql  # deferred import — keeps module testable without Databricks SDK installed
     conn = databricks.sql.connect(
         server_hostname=host,
         http_path=http_path,
         access_token=token,
     )
-    return conn.cursor()
+    return conn
+
+
+def _parse_exception_id(exception_id: str) -> tuple[str, str, str]:
+    parts = exception_id.split("|", maxsplit=2)
+    if len(parts) != 3:
+        raise HTTPException(status_code=422, detail=f"Invalid exception_id format: {exception_id!r}. Expected 'werks|unified_sku_id|loaded_at'.")
+    return parts[0], parts[1], parts[2]
 
 
 def _decision_to_status(manager_decision: Optional[str]) -> str:
@@ -102,7 +109,8 @@ def _row_to_exception_item(row) -> ExceptionItem:
 
 @router.get("/", response_model=list[ExceptionItem])
 def list_exceptions(store_id: Optional[str] = None, status: str = "PENDING") -> list[ExceptionItem]:
-    cursor = get_databricks_connection()
+    conn = get_databricks_connection()
+    cursor = conn.cursor()
     try:
         # Frontend uses "BLOCKED" but DB stores "REJECTED"
         db_status = "REJECTED" if status == "BLOCKED" else status
@@ -126,12 +134,14 @@ def list_exceptions(store_id: Optional[str] = None, status: str = "PENDING") -> 
         return [_row_to_exception_item(row) for row in rows]
     finally:
         cursor.close()
+        conn.close()
 
 
 @router.get("/{exception_id}", response_model=ExceptionItem)
 def get_exception(exception_id: str) -> ExceptionItem:
-    werks, unified_sku_id, loaded_at = exception_id.split("|", maxsplit=2)
-    cursor = get_databricks_connection()
+    werks, unified_sku_id, loaded_at = _parse_exception_id(exception_id)
+    conn = get_databricks_connection()
+    cursor = conn.cursor()
     try:
         sql = (
             f"SELECT {_SELECT_COLS} "
@@ -145,17 +155,19 @@ def get_exception(exception_id: str) -> ExceptionItem:
         return _row_to_exception_item(row)
     finally:
         cursor.close()
+        conn.close()
 
 
 @router.post("/{exception_id}/approve")
 def approve_exception(exception_id: str, body: ApproveRequest, request: Request) -> dict:
-    werks, unified_sku_id, loaded_at = exception_id.split("|", maxsplit=2)
+    werks, unified_sku_id, loaded_at = _parse_exception_id(exception_id)
     # POC: reads manager identity from client-supplied header.
     # Production: replace with Azure AD claim from X-MS-CLIENT-PRINCIPAL token.
     manager_id = request.headers.get("X-Manager-Id")
 
     decision_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    cursor = get_databricks_connection()
+    conn = get_databricks_connection()
+    cursor = conn.cursor()
     try:
         sql = (
             "UPDATE gold.replenishment.exception_queue "
@@ -173,17 +185,19 @@ def approve_exception(exception_id: str, body: ApproveRequest, request: Request)
         }
     finally:
         cursor.close()
+        conn.close()
 
 
 @router.post("/{exception_id}/reject")
 def reject_exception(exception_id: str, request: Request) -> dict:
-    werks, unified_sku_id, loaded_at = exception_id.split("|", maxsplit=2)
+    werks, unified_sku_id, loaded_at = _parse_exception_id(exception_id)
     # POC: reads manager identity from client-supplied header.
     # Production: replace with Azure AD claim from X-MS-CLIENT-PRINCIPAL token.
     manager_id = request.headers.get("X-Manager-Id")
 
     decision_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    cursor = get_databricks_connection()
+    conn = get_databricks_connection()
+    cursor = conn.cursor()
     try:
         sql = (
             "UPDATE gold.replenishment.exception_queue "
@@ -200,3 +214,4 @@ def reject_exception(exception_id: str, request: Request) -> dict:
         }
     finally:
         cursor.close()
+        conn.close()

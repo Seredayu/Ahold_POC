@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from fastapi import FastAPI
@@ -7,11 +8,13 @@ from .routers import exceptions, orders
 
 app = FastAPI(title="Ahold Delhaize Freshness POC API", version="0.1.0")
 
+ALLOW_ORIGINS = os.environ.get("ALLOW_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOW_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-Manager-Id"],
 )
 
 app.include_router(exceptions.router, prefix="/exceptions", tags=["exceptions"])

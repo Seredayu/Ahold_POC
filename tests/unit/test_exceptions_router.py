@@ -66,6 +66,12 @@ def _mock_cursor(rows=None, fetchone_row=None):
     return cursor
 
 
+def _mock_conn(cursor):
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+    return conn
+
+
 # ---------------------------------------------------------------------------
 # Tests: list_exceptions
 # ---------------------------------------------------------------------------
@@ -76,7 +82,7 @@ class TestListExceptions:
         row2 = _make_row(werks="AH02", unified_sku_id="SKU002", loaded_at="20260508T061501Z")
         cursor = _mock_cursor(rows=[row1, row2])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -88,7 +94,7 @@ class TestListExceptions:
         row = _make_row(werks="AH01", unified_sku_id="SKU123456", loaded_at="20260508T061500Z")
         cursor = _mock_cursor(rows=[row])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -99,7 +105,7 @@ class TestListExceptions:
         row = _make_row(manager_decision=None)
         cursor = _mock_cursor(rows=[row])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -109,7 +115,7 @@ class TestListExceptions:
         row = _make_row(manager_decision="APPROVED")
         cursor = _mock_cursor(rows=[row])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -119,7 +125,7 @@ class TestListExceptions:
         row = _make_row(manager_decision="REJECTED")
         cursor = _mock_cursor(rows=[row])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -130,7 +136,7 @@ class TestListExceptions:
         row = _make_row(shap_values=shap_str)
         cursor = _mock_cursor(rows=[row])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -142,7 +148,7 @@ class TestListExceptions:
         row = _make_row(shap_values=shap_dict)
         cursor = _mock_cursor(rows=[row])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -151,7 +157,7 @@ class TestListExceptions:
     def test_store_id_filter_passes_werks_param(self):
         cursor = _mock_cursor(rows=[])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/?store_id=AH01")
 
@@ -164,7 +170,7 @@ class TestListExceptions:
     def test_no_store_id_omits_werks_clause(self):
         cursor = _mock_cursor(rows=[])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/")
 
@@ -181,7 +187,7 @@ class TestApproveException:
     def test_returns_approved_status(self):
         cursor = _mock_cursor()
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.post(
                 "/exceptions/AH01|SKU123456|20260508T061500Z/approve",
@@ -199,7 +205,7 @@ class TestApproveException:
     def test_update_sql_called_with_correct_params(self):
         cursor = _mock_cursor()
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             client.post(
                 "/exceptions/AH01|SKU123456|20260508T061500Z/approve",
@@ -224,7 +230,7 @@ class TestRejectException:
     def test_returns_blocked_status(self):
         cursor = _mock_cursor()
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.post(
                 "/exceptions/AH01|SKU123456|20260508T061500Z/reject",
@@ -240,7 +246,7 @@ class TestRejectException:
     def test_update_sql_called_with_rejected(self):
         cursor = _mock_cursor()
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             client.post(
                 "/exceptions/AH01|SKU123456|20260508T061500Z/reject",
@@ -298,7 +304,7 @@ class TestGetException:
         row = _make_row(werks="AH01", unified_sku_id="SKU123456", loaded_at="20260508T061500Z")
         cursor = _mock_cursor(fetchone_row=row)
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/AH01|SKU123456|20260508T061500Z")
 
@@ -310,7 +316,7 @@ class TestGetException:
     def test_get_exception_not_found(self):
         cursor = _mock_cursor(fetchone_row=None)
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/AH01|SKU_MISSING|20260508T000000Z")
 
@@ -325,7 +331,7 @@ class TestListExceptionsStatusTranslation:
     def test_blocked_status_passes_rejected_to_sql(self):
         cursor = _mock_cursor(rows=[])
 
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=_mock_conn(cursor)):
             client = TestClient(_make_app())
             resp = client.get("/exceptions/?status=BLOCKED")
 

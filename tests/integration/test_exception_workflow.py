@@ -34,6 +34,12 @@ def make_mock_cursor(rows=None, fetchone_row=None):
     return cursor
 
 
+def make_mock_conn(cursor):
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+    return conn
+
+
 @pytest.fixture
 def client():
     return TestClient(app)
@@ -43,23 +49,25 @@ class TestExceptionWorkflow:
     def test_list_pending_exceptions(self, client):
         """List returns all PENDING exceptions sorted by deviation_pct desc."""
         cursor = make_mock_cursor(rows=EXCEPTION_ROWS)
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        conn = make_mock_conn(cursor)
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=conn):
             resp = client.get("/exceptions/?status=PENDING")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
         # SKU123456 has deviation_pct 0.38 > 0.26 — should be first
-        assert data[0]["sku_id"] == "SKU123456"
+        assert data[0]["unified_sku_id"] == "SKU123456"
         assert data[0]["status"] == "PENDING"
 
     def test_approve_exception_updates_queue(self, client):
         """Approve POST returns APPROVED status with manager_id."""
         cursor = make_mock_cursor()
+        conn = make_mock_conn(cursor)
         exception_id = "AH01|SKU123456|20260508T061500Z"
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=conn):
             resp = client.post(
                 f"/exceptions/{exception_id}/approve",
-                json={"override_qty": 50, "reviewer_note": "Local event"},
+                json={"override_qty": 50, "override_reason": "Local event"},
                 headers={"X-Manager-Id": "manager-001"},
             )
         assert resp.status_code == 200
@@ -75,8 +83,9 @@ class TestExceptionWorkflow:
     def test_reject_exception_returns_blocked(self, client):
         """Reject POST returns BLOCKED status."""
         cursor = make_mock_cursor()
+        conn = make_mock_conn(cursor)
         exception_id = "AH01|SKU789012|20260508T061500Z"
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=conn):
             resp = client.post(
                 f"/exceptions/{exception_id}/reject",
                 headers={"X-Manager-Id": "manager-001"},
@@ -87,17 +96,19 @@ class TestExceptionWorkflow:
     def test_get_single_exception(self, client):
         """GET /{id} returns single exception."""
         cursor = make_mock_cursor(fetchone_row=EXCEPTION_ROWS[0])
+        conn = make_mock_conn(cursor)
         exception_id = "AH01|SKU123456|20260508T061500Z"
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=conn):
             resp = client.get(f"/exceptions/{exception_id}")
         assert resp.status_code == 200
-        assert resp.json()["sku_id"] == "SKU123456"
+        assert resp.json()["unified_sku_id"] == "SKU123456"
 
     def test_get_missing_exception_returns_404(self, client):
         """GET /{id} for unknown exception returns 404."""
         cursor = make_mock_cursor(fetchone_row=None)
+        conn = make_mock_conn(cursor)
         exception_id = "AH01|UNKNOWN|20260508T061500Z"
-        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=conn):
             resp = client.get(f"/exceptions/{exception_id}")
         assert resp.status_code == 404
 
@@ -108,3 +119,17 @@ class TestExceptionWorkflow:
         data = resp.json()
         assert data["status"] == "ok"
         assert "timestamp" in data
+
+    def test_approve_without_manager_id_header(self, client):
+        """Approve without X-Manager-Id stores None as manager_id."""
+        cursor = make_mock_cursor()
+        conn = make_mock_conn(cursor)
+        exception_id = "AH01|SKU123456|20260508T061500Z"
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=conn):
+            resp = client.post(
+                f"/exceptions/{exception_id}/approve",
+                json={"override_qty": None, "override_reason": None},
+                # No X-Manager-Id header
+            )
+        assert resp.status_code == 200
+        assert resp.json()["manager_id"] is None  # Documented POC behavior

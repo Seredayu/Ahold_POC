@@ -1,5 +1,5 @@
 # Azure Container Apps deployment for Ahold Freshness POC FastAPI backend
-apiVersion: 2024-02-02-preview
+apiVersion: 2024-03-01
 location: westeurope
 name: ahold-freshness-api
 resourceGroup: rg-ahold-freshness-poc
@@ -31,6 +31,19 @@ properties:
             secretRef: databricks-token
           - name: DATABRICKS_HTTP_PATH
             secretRef: databricks-http-path
+        probes:
+          - type: liveness
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          - type: readiness
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
     scale:
       minReplicas: 1
       maxReplicas: 3

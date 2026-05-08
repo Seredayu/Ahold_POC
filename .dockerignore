@@ -1,0 +1,16 @@
+.worktrees/
+.git/
+.obsidian/
+.snapshots/
+research/
+wiki/
+tests/
+frontend/node_modules/
+frontend/.env*
+*.pyc
+__pycache__/
+.env
+.env.*
+*.log
+memory/
+openspec/
