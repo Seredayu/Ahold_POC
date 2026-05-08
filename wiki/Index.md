@@ -14,6 +14,7 @@
 | [[Frontend]] | React Field App, Power BI, SAP Analytics Cloud, SHAP Waterfall component |
 | [[Infrastructure]] | Azure + Databricks platform, security, monitoring, DevOps/MLOps, implementation roadmap |
 | [[Watcher]] | File system daemon that auto-ingests research/ changes into wiki pages |
+| [[Ingest]] | Core ingest pipeline — extract, Claude API call, manifest tracking, error handling |
 
 ## Key Facts
 

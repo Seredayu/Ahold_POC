@@ -17,7 +17,7 @@ ERRORS_LOG = WIKI_DIR / '.errors.log'
 
 WIKI_PAGES = [
     'Architecture-Overview', 'Data-Integration', 'ML-Models',
-    'Replenishment-Engine', 'SAP-Integration', 'Frontend', 'Infrastructure', 'Watcher',
+    'Replenishment-Engine', 'SAP-Integration', 'Frontend', 'Infrastructure', 'Watcher', 'Ingest',
 ]
 
 SUPPORTED_EXTENSIONS = {'.md', '.txt', '.pdf', '.docx', '.pptx', '.xlsx'}
@@ -175,7 +175,7 @@ def _system_prompt() -> str:
         '{"pages": [{"name": "<PageName>", "full_markdown_content": "<full page content>"}]}\n'
         'Merge new knowledge into existing pages. Preserve prior content; add, correct, cross-reference as needed. '
         'Page names must be one of: Architecture-Overview, Data-Integration, ML-Models, '
-        'Replenishment-Engine, SAP-Integration, Frontend, Infrastructure, Watcher, Index. '
+        'Replenishment-Engine, SAP-Integration, Frontend, Infrastructure, Watcher, Ingest, Index. '
         'Only include pages that need updating. Return valid JSON only, no markdown fences.'
     )
 
