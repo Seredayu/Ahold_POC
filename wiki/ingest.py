@@ -20,6 +20,7 @@ WIKI_PAGES = [
 
 SUPPORTED_EXTENSIONS = {'.md', '.txt', '.pdf', '.docx', '.pptx', '.xlsx'}
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg'}
+ALL_SUPPORTED_EXTENSIONS = SUPPORTED_EXTENSIONS | IMAGE_EXTENSIONS
 
 
 def file_hash(filepath: Path) -> str:
