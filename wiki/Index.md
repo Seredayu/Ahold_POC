@@ -15,6 +15,7 @@
 | [[Infrastructure]] | Azure + Databricks platform, security, monitoring, DevOps/MLOps, implementation roadmap |
 | [[Watcher]] | File system daemon that auto-ingests research/ changes into wiki pages |
 | [[Ingest]] | Core ingest pipeline — extract, Claude API call, manifest tracking, error handling |
+| [[Extract]] | Text extraction module — PDF, DOCX, PPTX, XLSX, MD, TXT handlers |
 
 ## Key Facts
 
