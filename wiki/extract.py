@@ -54,12 +54,15 @@ def _extract_pptx(filepath: Path) -> str:
 def _extract_xlsx(filepath: Path) -> str:
     import openpyxl
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-    lines = []
-    for sheet in wb.sheetnames:
-        ws = wb[sheet]
-        lines.append(f'Sheet: {sheet}')
-        for row in ws.iter_rows(values_only=True):
-            row_text = '\t'.join(str(c) if c is not None else '' for c in row)
-            if row_text.strip():
-                lines.append(row_text)
-    return '\n'.join(lines)
+    try:
+        lines = []
+        for sheet in wb.sheetnames:
+            ws = wb[sheet]
+            lines.append(f'Sheet: {sheet}')
+            for row in ws.iter_rows(values_only=True):
+                row_text = '\t'.join(str(c) if c is not None else '' for c in row)
+                if row_text.strip():
+                    lines.append(row_text)
+        return '\n'.join(lines)
+    finally:
+        wb.close()

@@ -18,9 +18,8 @@ def test_extract_txt():
     assert 'Hello world from text' in text
 
 
-def test_unsupported_type_raises():
-    fake = FIXTURES / 'sample.xyz'
+def test_unsupported_type_raises(tmp_path):
+    fake = tmp_path / 'sample.xyz'
     fake.write_text('data')
     with pytest.raises(UnsupportedFileType):
         extract_text(fake)
-    fake.unlink()
