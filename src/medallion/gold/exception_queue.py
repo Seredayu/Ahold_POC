@@ -17,8 +17,8 @@ class ExceptionQueueSchema(BaseModel):
     override_reason: Optional[str] = None
     override_qty: Optional[int] = None
     shap_values: Optional[dict[str, float]] = None  # feature contributions
-    loaded_at: str = ""
+    loaded_at: str = ""  # Delta column is named _loaded_at (leading underscore); renamed here for Pydantic v2 compatibility
 
 
 def build_exception_id(werks: str, unified_sku_id: str, loaded_at: str) -> str:
-    return f"{werks}_{unified_sku_id}_{loaded_at}"
+    return f"{werks}|{unified_sku_id}|{loaded_at}"

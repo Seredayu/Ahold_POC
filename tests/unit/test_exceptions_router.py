@@ -93,7 +93,7 @@ class TestListExceptions:
             resp = client.get("/exceptions/")
 
         item = resp.json()[0]
-        assert item["exception_id"] == "AH01_SKU123456_20260508T061500Z"
+        assert item["exception_id"] == "AH01|SKU123456|20260508T061500Z"
 
     def test_status_mapping_pending(self):
         row = _make_row(manager_decision=None)
@@ -184,7 +184,7 @@ class TestApproveException:
         with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
             client = TestClient(_make_app())
             resp = client.post(
-                "/exceptions/AH01_SKU123456_20260508T061500Z/approve",
+                "/exceptions/AH01|SKU123456|20260508T061500Z/approve",
                 json={"override_qty": 90, "override_reason": "Manual check"},
                 headers={"X-Manager-Id": "mgr-aad-001"},
             )
@@ -192,7 +192,7 @@ class TestApproveException:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "APPROVED"
-        assert data["exception_id"] == "AH01_SKU123456_20260508T061500Z"
+        assert data["exception_id"] == "AH01|SKU123456|20260508T061500Z"
         assert data["manager_id"] == "mgr-aad-001"
         assert "decision_timestamp" in data
 
@@ -202,7 +202,7 @@ class TestApproveException:
         with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
             client = TestClient(_make_app())
             client.post(
-                "/exceptions/AH01_SKU123456_20260508T061500Z/approve",
+                "/exceptions/AH01|SKU123456|20260508T061500Z/approve",
                 json={"override_qty": 90, "override_reason": "Manual check"},
                 headers={"X-Manager-Id": "mgr-aad-001"},
             )
@@ -227,14 +227,14 @@ class TestRejectException:
         with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
             client = TestClient(_make_app())
             resp = client.post(
-                "/exceptions/AH01_SKU123456_20260508T061500Z/reject",
+                "/exceptions/AH01|SKU123456|20260508T061500Z/reject",
                 headers={"X-Manager-Id": "mgr-aad-002"},
             )
 
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "BLOCKED"
-        assert data["exception_id"] == "AH01_SKU123456_20260508T061500Z"
+        assert data["exception_id"] == "AH01|SKU123456|20260508T061500Z"
         assert data["manager_id"] == "mgr-aad-002"
 
     def test_update_sql_called_with_rejected(self):
@@ -243,7 +243,7 @@ class TestRejectException:
         with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
             client = TestClient(_make_app())
             client.post(
-                "/exceptions/AH01_SKU123456_20260508T061500Z/reject",
+                "/exceptions/AH01|SKU123456|20260508T061500Z/reject",
                 headers={"X-Manager-Id": "mgr-aad-002"},
             )
 
@@ -259,22 +259,78 @@ class TestRejectException:
 
 class TestGetDatabricksConnection:
     def test_raises_when_host_missing(self):
-        env = {k: v for k, v in os.environ.items() if k not in ("DATABRICKS_HOST", "DATABRICKS_TOKEN")}
-        env.pop("DATABRICKS_TOKEN", None)
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("DATABRICKS_HOST", "DATABRICKS_TOKEN", "DATABRICKS_HTTP_PATH")}
 
         with patch.dict(os.environ, env, clear=True):
             from src.api.routers.exceptions import get_databricks_connection
-            with pytest.raises(RuntimeError, match="DATABRICKS_HOST and DATABRICKS_TOKEN must be set"):
+            with pytest.raises(RuntimeError, match="DATABRICKS_HOST, DATABRICKS_TOKEN, and DATABRICKS_HTTP_PATH must be set"):
                 get_databricks_connection()
 
     def test_raises_when_token_missing(self):
-        env = {"DATABRICKS_HOST": "https://adb-123.azuredatabricks.net"}
-        # Ensure TOKEN is absent
-        patched = {k: v for k, v in os.environ.items() if k != "DATABRICKS_TOKEN"}
+        patched = {k: v for k, v in os.environ.items()
+                   if k not in ("DATABRICKS_TOKEN", "DATABRICKS_HTTP_PATH")}
         patched["DATABRICKS_HOST"] = "https://adb-123.azuredatabricks.net"
-        patched.pop("DATABRICKS_TOKEN", None)
 
         with patch.dict(os.environ, patched, clear=True):
             from src.api.routers.exceptions import get_databricks_connection
-            with pytest.raises(RuntimeError, match="DATABRICKS_HOST and DATABRICKS_TOKEN must be set"):
+            with pytest.raises(RuntimeError, match="DATABRICKS_HOST, DATABRICKS_TOKEN, and DATABRICKS_HTTP_PATH must be set"):
                 get_databricks_connection()
+
+    def test_raises_when_http_path_missing(self):
+        patched = {k: v for k, v in os.environ.items() if k != "DATABRICKS_HTTP_PATH"}
+        patched["DATABRICKS_HOST"] = "https://adb-123.azuredatabricks.net"
+        patched["DATABRICKS_TOKEN"] = "dapi-test-token"
+        patched.pop("DATABRICKS_HTTP_PATH", None)
+
+        with patch.dict(os.environ, patched, clear=True):
+            from src.api.routers.exceptions import get_databricks_connection
+            with pytest.raises(RuntimeError, match="DATABRICKS_HOST, DATABRICKS_TOKEN, and DATABRICKS_HTTP_PATH must be set"):
+                get_databricks_connection()
+
+
+# ---------------------------------------------------------------------------
+# Tests: get_exception (GET /{exception_id})
+# ---------------------------------------------------------------------------
+
+class TestGetException:
+    def test_get_exception_found(self):
+        row = _make_row(werks="AH01", unified_sku_id="SKU123456", loaded_at="20260508T061500Z")
+        cursor = _mock_cursor(fetchone_row=row)
+
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+            client = TestClient(_make_app())
+            resp = client.get("/exceptions/AH01|SKU123456|20260508T061500Z")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["exception_id"] == "AH01|SKU123456|20260508T061500Z"
+        assert data["status"] == "PENDING"
+
+    def test_get_exception_not_found(self):
+        cursor = _mock_cursor(fetchone_row=None)
+
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+            client = TestClient(_make_app())
+            resp = client.get("/exceptions/AH01|SKU_MISSING|20260508T000000Z")
+
+        assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Tests: list_exceptions BLOCKED→REJECTED translation
+# ---------------------------------------------------------------------------
+
+class TestListExceptionsStatusTranslation:
+    def test_blocked_status_passes_rejected_to_sql(self):
+        cursor = _mock_cursor(rows=[])
+
+        with patch("src.api.routers.exceptions.get_databricks_connection", return_value=cursor):
+            client = TestClient(_make_app())
+            resp = client.get("/exceptions/?status=BLOCKED")
+
+        assert resp.status_code == 200
+        call_args = cursor.execute.call_args
+        sql, params = call_args[0]
+        assert "REJECTED" in params
+        assert "BLOCKED" not in params

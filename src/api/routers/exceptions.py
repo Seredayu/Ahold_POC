@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from src.medallion.gold.exception_queue import ExceptionQueueSchema, build_exception_id
@@ -44,12 +44,13 @@ class ApproveRequest(BaseModel):
 def get_databricks_connection():
     host = os.environ.get("DATABRICKS_HOST")
     token = os.environ.get("DATABRICKS_TOKEN")
-    if not host or not token:
-        raise RuntimeError("DATABRICKS_HOST and DATABRICKS_TOKEN must be set")
+    http_path = os.environ.get("DATABRICKS_HTTP_PATH")
+    if not host or not token or not http_path:
+        raise RuntimeError("DATABRICKS_HOST, DATABRICKS_TOKEN, and DATABRICKS_HTTP_PATH must be set")
     import databricks.sql  # deferred import — keeps module testable without Databricks SDK installed
     conn = databricks.sql.connect(
         server_hostname=host,
-        http_path="/sql/1.0/warehouses/default",
+        http_path=http_path,
         access_token=token,
     )
     return conn.cursor()
@@ -103,13 +104,16 @@ def _row_to_exception_item(row) -> ExceptionItem:
 def list_exceptions(store_id: Optional[str] = None, status: str = "PENDING") -> list[ExceptionItem]:
     cursor = get_databricks_connection()
     try:
+        # Frontend uses "BLOCKED" but DB stores "REJECTED"
+        db_status = "REJECTED" if status == "BLOCKED" else status
+
         base_sql = (
             f"SELECT {_SELECT_COLS} "
             "FROM gold.replenishment.exception_queue "
             "WHERE sweeper_action = 'ESCALATE' "
             "AND COALESCE(manager_decision, 'PENDING') = ? "
         )
-        params: list = [status]
+        params: list = [db_status]
 
         if store_id is not None:
             base_sql += "AND werks = ? "
@@ -126,7 +130,7 @@ def list_exceptions(store_id: Optional[str] = None, status: str = "PENDING") -> 
 
 @router.get("/{exception_id}", response_model=ExceptionItem)
 def get_exception(exception_id: str) -> ExceptionItem:
-    werks, unified_sku_id, loaded_at = exception_id.split("_", maxsplit=2)
+    werks, unified_sku_id, loaded_at = exception_id.split("|", maxsplit=2)
     cursor = get_databricks_connection()
     try:
         sql = (
@@ -136,6 +140,8 @@ def get_exception(exception_id: str) -> ExceptionItem:
         )
         cursor.execute(sql, [werks, unified_sku_id, loaded_at])
         row = cursor.fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Exception {exception_id} not found")
         return _row_to_exception_item(row)
     finally:
         cursor.close()
@@ -143,25 +149,27 @@ def get_exception(exception_id: str) -> ExceptionItem:
 
 @router.post("/{exception_id}/approve")
 def approve_exception(exception_id: str, body: ApproveRequest, request: Request) -> dict:
-    werks, unified_sku_id, loaded_at = exception_id.split("_", maxsplit=2)
+    werks, unified_sku_id, loaded_at = exception_id.split("|", maxsplit=2)
+    # POC: reads manager identity from client-supplied header.
+    # Production: replace with Azure AD claim from X-MS-CLIENT-PRINCIPAL token.
     manager_id = request.headers.get("X-Manager-Id")
 
+    decision_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     cursor = get_databricks_connection()
     try:
         sql = (
             "UPDATE gold.replenishment.exception_queue "
-            "SET manager_decision='APPROVED', manager_id=?, decision_timestamp=current_timestamp(), "
+            "SET manager_decision='APPROVED', manager_id=?, decision_timestamp=?, "
             "override_reason=?, override_qty=? "
             "WHERE werks=? AND unified_sku_id=? AND _loaded_at=?"
         )
-        cursor.execute(sql, [manager_id, body.override_reason, body.override_qty, werks, unified_sku_id, loaded_at])
+        cursor.execute(sql, [manager_id, decision_ts, body.override_reason, body.override_qty, werks, unified_sku_id, loaded_at])
 
-        decision_timestamp = datetime.utcnow().isoformat() + "Z"
         return {
             "exception_id": exception_id,
             "status": "APPROVED",
             "manager_id": manager_id,
-            "decision_timestamp": decision_timestamp,
+            "decision_timestamp": decision_ts,
         }
     finally:
         cursor.close()
@@ -169,24 +177,26 @@ def approve_exception(exception_id: str, body: ApproveRequest, request: Request)
 
 @router.post("/{exception_id}/reject")
 def reject_exception(exception_id: str, request: Request) -> dict:
-    werks, unified_sku_id, loaded_at = exception_id.split("_", maxsplit=2)
+    werks, unified_sku_id, loaded_at = exception_id.split("|", maxsplit=2)
+    # POC: reads manager identity from client-supplied header.
+    # Production: replace with Azure AD claim from X-MS-CLIENT-PRINCIPAL token.
     manager_id = request.headers.get("X-Manager-Id")
 
+    decision_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     cursor = get_databricks_connection()
     try:
         sql = (
             "UPDATE gold.replenishment.exception_queue "
-            "SET manager_decision='REJECTED', manager_id=?, decision_timestamp=current_timestamp() "
+            "SET manager_decision='REJECTED', manager_id=?, decision_timestamp=? "
             "WHERE werks=? AND unified_sku_id=? AND _loaded_at=?"
         )
-        cursor.execute(sql, [manager_id, werks, unified_sku_id, loaded_at])
+        cursor.execute(sql, [manager_id, decision_ts, werks, unified_sku_id, loaded_at])
 
-        decision_timestamp = datetime.utcnow().isoformat() + "Z"
         return {
             "exception_id": exception_id,
             "status": "BLOCKED",
             "manager_id": manager_id,
-            "decision_timestamp": decision_timestamp,
+            "decision_timestamp": decision_ts,
         }
     finally:
         cursor.close()
