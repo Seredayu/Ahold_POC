@@ -101,6 +101,17 @@ def test_classify_finalize_skips_rejected():
     assert status == "MANAGER_REJECTED"
 
 
+def test_classify_finalize_block():
+    from engines.sweeper.sweeper_pipeline import _classify_finalize_row
+
+    needs_bapi, status = _classify_finalize_row({
+        "sweeper_action": "BLOCK",
+        "manager_decision": None,
+    })
+    assert needs_bapi is False
+    assert status == "BLOCKED"
+
+
 # ---------------------------------------------------------------------------
 # Task 2 — _build_edi_lines_by_vendor
 # ---------------------------------------------------------------------------

@@ -1,15 +1,14 @@
 import logging
-from datetime import date, datetime, time, timedelta
+from datetime import date, timedelta
 
 _log = logging.getLogger(__name__)
 
 # Heavy runtime imports (pyspark, mlflow) are deferred to function bodies so
 # that unit tests can import this module and exercise pure-Python helpers
-# (_compute_deviation, _minutes_to_edi_deadline) without a Spark/MLflow
-# environment.  Schema constants are also defined lazily for the same reason.
+# (_compute_deviation, _classify_finalize_row, _build_edi_lines_by_vendor)
+# without a Spark/MLflow environment.  Schema constants are also defined lazily.
 
 _EDI_SENDER_ID = "AHOLD_NL"
-_EDI_DEADLINE = time(8, 15)
 
 
 def _exception_queue_schema():
@@ -52,13 +51,6 @@ def _compute_deviation(recommended_qty: int, p50: float) -> float:
     if p50 <= 0.0:
         return 0.0
     return abs(recommended_qty - p50) / p50
-
-
-def _minutes_to_edi_deadline() -> int:
-    now = datetime.now()
-    deadline = datetime.combine(now.date(), _EDI_DEADLINE)
-    delta = (deadline - now).total_seconds() / 60
-    return max(0, int(delta))
 
 
 def _classify_finalize_row(row: dict) -> tuple:
@@ -128,7 +120,6 @@ def _entry_load_exceptions() -> None:
         context = {
             "transit_to_life_ratio": float(row["transit_to_life_ratio"]),
             "quantity_deviation_pct": deviation,
-            "minutes_to_deadline": _minutes_to_edi_deadline(),
         }
         action = sm.process_exception(context)
         rows.append({
