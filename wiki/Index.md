@@ -13,6 +13,7 @@
 | [[SAP-Integration]] | Clean Core mandate, BAPIs, ECC/S4HANA/Symphony write-backs, EDI, pre-sprint dependencies |
 | [[Frontend]] | React Field App, Power BI, SAP Analytics Cloud, SHAP Waterfall component |
 | [[Infrastructure]] | Azure + Databricks platform, security, monitoring, DevOps/MLOps, implementation roadmap |
+| [[Watcher]] | File system daemon that auto-ingests research/ changes into wiki pages |
 
 ## Key Facts
 
