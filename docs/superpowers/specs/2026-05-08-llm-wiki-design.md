@@ -46,8 +46,8 @@ Per source file:
    - `.xlsx` → `openpyxl` (sheet names + cell values)
    - `.png` / `.jpg` → Claude vision (describe + extract text)
 3. Call Claude API (`claude-sonnet-4-6`):
-   - System: "You maintain a wiki for the Ahold Delhaize Freshness Sprint POC. Given a source document, return JSON: `{pages: [{name, full_markdown_content}]}` for all pages that should be created or updated."
-   - User: `<extracted source text>`
+   - System: "You maintain a wiki for the Ahold Delhaize Freshness Sprint POC. Given a source document and the current content of relevant wiki pages, return JSON: `{pages: [{name, full_markdown_content}]}` merging new knowledge into existing pages. Preserve prior content; add, correct, or cross-reference as needed."
+   - User: `<extracted source text>\n\n<existing page contents for pages likely to be affected>`
 4. Write each returned page to `wiki/<name>.md`. Update `Index.md`.
 5. Write manifest entry `{hash, timestamp, pages: [...]}`.
 
