@@ -10,11 +10,10 @@ def test_load_exceptions_auto_approve_low_deviation():
     from engines.sweeper.decision_rules import SweeperAction
 
     sm = SweeperStateMachine()
-    # deviation=0.10 < 0.25 threshold; TTL=0.3 < 0.5; 120 min to deadline
+    # deviation=0.10 < 0.25 threshold; TTL=0.3 < 0.5
     action = sm.process_exception({
         "transit_to_life_ratio": 0.3,
         "quantity_deviation_pct": 0.10,
-        "minutes_to_deadline": 120,
     })
     assert action == SweeperAction.AUTO_APPROVE
 
@@ -24,11 +23,10 @@ def test_load_exceptions_escalate_high_deviation():
     from engines.sweeper.decision_rules import SweeperAction
 
     sm = SweeperStateMachine()
-    # TTL=0.3 passes; deviation=0.40 > 0.25 → ESCALATE; 120 min → not at deadline cutoff
+    # TTL=0.3 passes; deviation=0.40 > 0.25 → ESCALATE
     action = sm.process_exception({
         "transit_to_life_ratio": 0.3,
         "quantity_deviation_pct": 0.40,
-        "minutes_to_deadline": 120,
     })
     assert action == SweeperAction.ESCALATE
 
@@ -42,7 +40,6 @@ def test_load_exceptions_block_high_ttl():
     action = sm.process_exception({
         "transit_to_life_ratio": 0.8,
         "quantity_deviation_pct": 0.10,
-        "minutes_to_deadline": 120,
     })
     assert action == SweeperAction.BLOCK
 
