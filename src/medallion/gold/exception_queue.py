@@ -17,7 +17,7 @@ class ExceptionQueueSchema(BaseModel):
     override_reason: Optional[str] = None
     override_qty: Optional[int] = None
     shap_values: Optional[dict[str, float]] = None  # feature contributions
-    _loaded_at: str = ""
+    loaded_at: str = ""
 
 
 def build_exception_id(werks: str, unified_sku_id: str, loaded_at: str) -> str:
