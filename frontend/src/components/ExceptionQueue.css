@@ -12,3 +12,5 @@
 .status-badge.status-approved { background: #d1fae5; color: #065f46; }
 .status-badge.status-blocked { background: #fee2e2; color: #991b1b; }
 .status-badge.status-escalated { background: #e0e7ff; color: #3730a3; }
+.shap-detail-row { margin-top: 8px; }
+.override-qty-input { margin-right: 8px; }

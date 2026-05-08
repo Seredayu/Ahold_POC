@@ -93,7 +93,7 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
                       skuId={exc.sku_id}
                       siteId={exc.site_id}
                     />
-                    <div style={{ marginTop: 8 }}>
+                    <div className="shap-detail-row">
                       <input
                         type="number"
                         placeholder="Override qty (optional)"
@@ -107,7 +107,7 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
                             return next;
                           });
                         }}
-                        style={{ marginRight: 8 }}
+                        className="override-qty-input"
                       />
                       <textarea
                         placeholder="Note (optional)"

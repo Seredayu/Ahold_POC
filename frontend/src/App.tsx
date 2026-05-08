@@ -20,7 +20,6 @@ interface Exception {
 
 export default function App() {
   const [exceptions, setExceptions] = useState<Exception[]>([]);
-  const [initialized, setInitialized] = useState(false);
   const [tab, setTab] = useState<"queue" | "map">("queue");
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +32,6 @@ export default function App() {
         if (isInitial) {
           // First load: sort by deviation_pct desc
           setExceptions(data.sort((a, b) => b.deviation_pct - a.deviation_pct));
-          setInitialized(true);
         } else {
           // Subsequent polls: add new exceptions at end, don't re-sort
           setExceptions(prev => {
