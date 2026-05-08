@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Union
 
 import anthropic
+from dotenv import load_dotenv
 
 WIKI_DIR = Path(__file__).parent
+load_dotenv(WIKI_DIR / '.env')
 RESEARCH_DIR = WIKI_DIR.parent / 'research'
 MANIFEST_FILE = WIKI_DIR / '.manifest.json'
 ERRORS_LOG = WIKI_DIR / '.errors.log'

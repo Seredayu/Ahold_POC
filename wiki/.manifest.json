@@ -24,5 +24,26 @@
       "Frontend",
       "Infrastructure"
     ]
+  },
+  "C:\\Projects\\Ahold_POC\\research\\README.md": {
+    "hash": "33f31ef00c6d5d4c3662e4c9960afbd63b61ee26853db42c3a2706959cb71ebb",
+    "timestamp": "2026-05-08T21:49:26.880194",
+    "pages": [
+      "Index"
+    ]
+  },
+  "C:\\Projects\\Ahold_POC\\research\\notebooklm-exports\\Ahold Delhaize  - 1.md": {
+    "hash": "c2c8e8095be1b615258c39f127788a97570719f44cfa4671318e1d2dfc312c9f",
+    "timestamp": "2026-05-08T21:50:15.598016",
+    "pages": [
+      "Architecture-Overview"
+    ]
+  },
+  "C:\\Projects\\Ahold_POC\\research\\sources\\ahold_delhaize_inventory_optimization_architecture.md": {
+    "hash": "37dd4d24b8af265ebafa006a3bd4a55bcf20a95eb911ca8bbc5c5c4853724143",
+    "timestamp": "2026-05-08T21:50:25.258771",
+    "pages": [
+      "Index"
+    ]
   }
 }

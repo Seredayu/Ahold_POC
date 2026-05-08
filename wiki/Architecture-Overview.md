@@ -38,6 +38,7 @@ Medallion Architecture via Delta Live Tables (DLT):
 - Supply Chain: lead time variance, supplier reliability score, transit time predictions, warehouse capacity utilization
 
 ### Layer 5: ML Models & Prediction Engine (MLflow Model Registry)
+Five specialized engines generate probabilistic insights:
 - **Model 1 — Demand Forecasting**: Prophet (baseline) → LightGBM (production), with LSTM as deep option. Granularity: Store-SKU-Day. Outputs: P10/P50/P90 demand, forecast accuracy, confidence intervals.
 - **Model 2 — Waste Prediction / Phantom Detection**: XGBoost Classifier + Random Forest. Targets waste probability, expected waste $, optimal markdown %. Triggers markdown alerts, donation triggers, reorder prevention.
 - **Model 3 — Dynamic Pricing**: Reinforcement Learning (PPO/DQN) + Price Elasticity Model. Optimizes margin, inventory turnover, freshness preservation.
@@ -59,7 +60,7 @@ EDI 850 files land in `gold.edi.outbound/`; Azure Logic App picks them up for SF
 
 ### Layer 8: User Interfaces & Analytics
 - **Power BI** (operational): Store managers, category managers, supply chain, buyers. Real-time daily inventory positions, stockout alerts, waste tracking, replenishment queues.
-- **SAP Analytics Cloud** (strategic): C-suite, Category VPs, Finance, Strategy. Waste trends, forecast accuracy, margin analysis, supplier scorecard, regional performance, ROI metrics.
+- **SAP Analytics Cloud** (strategic): C-suite, Category VPs, Finance, Strategy. Waste trends, forecast accuracy, margin analysis, supplier scorecard, regional performance, ROI metrics, **€350M+ EBITDA tracker**, ESG/Sustainability targets.
 - **React Field App** (store managers): Mobile-first, offline-capable. Management by Exception — approve markdowns, barcode scanning, real-time stock check, photo upload (quality issues), task management.
 
 ## Daily Processing Timeline
