@@ -94,7 +94,7 @@ def _ingest_image(filepath: Path, manifest: dict, client: anthropic.Anthropic) -
     try:
         response = client.messages.create(
             model='claude-sonnet-4-6',
-            max_tokens=8096,
+            max_tokens=16000,
             system=_system_prompt(),
             messages=[{
                 'role': 'user',
@@ -126,7 +126,7 @@ def _call_api_and_write(
     try:
         response = client.messages.create(
             model='claude-sonnet-4-6',
-            max_tokens=8096,
+            max_tokens=16000,
             system=_system_prompt(),
             messages=[{
                 'role': 'user',
