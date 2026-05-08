@@ -171,8 +171,10 @@ def _entry_load_exceptions() -> None:
 
 
 def _entry_finalize() -> None:
+    import mlflow
     from databricks.sdk.runtime import dbutils
     from pyspark.sql import SparkSession
+    from pyspark.sql import functions as F
     from engines.freshness.po_client import POClient
     from engines.phantom_stock.bapi_client import BAPIError
     from integration.edi.edi_850_generator import EDI850Generator
@@ -241,8 +243,6 @@ def _entry_finalize() -> None:
                 })
 
     if audit_rows:
-        import mlflow
-        from pyspark.sql import functions as F
         audit_df = (
             spark.createDataFrame(audit_rows, schema=_po_audit_schema())
             .withColumn("_created_at", F.current_timestamp())
@@ -252,8 +252,6 @@ def _entry_finalize() -> None:
         )
 
     # EDI consolidation — all approved POs for today (Phase 3B AUTO_APPROVED + Sweeper)
-    import mlflow
-    from pyspark.sql import functions as F
     today = date.today().isoformat()
     po_audit_df = (
         spark.table("gold.replenishment.po_audit")
