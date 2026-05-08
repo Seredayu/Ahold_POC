@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,4 +20,4 @@ app.include_router(orders.router, prefix="/orders", tags=["orders"])
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat() + "Z"}
