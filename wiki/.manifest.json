@@ -1,1 +1,28 @@
-{}
+{
+  "c:\\Projects\\Ahold_POC\\research\\sources\\ahold_delhaize_inventory_optimization_architecture.md": {
+    "hash": "37dd4d24b8af265ebafa006a3bd4a55bcf20a95eb911ca8bbc5c5c4853724143",
+    "timestamp": "2026-05-08T11:31:21.267351",
+    "pages": [
+      "Architecture-Overview",
+      "Data-Integration",
+      "ML-Models",
+      "Replenishment-Engine",
+      "SAP-Integration",
+      "Frontend",
+      "Infrastructure"
+    ]
+  },
+  "c:\\Projects\\Ahold_POC\\research\\notebooklm-exports\\Ahold Delhaize  - 1.md": {
+    "hash": "c2c8e8095be1b615258c39f127788a97570719f44cfa4671318e1d2dfc312c9f",
+    "timestamp": "2026-05-08T11:31:21.267494",
+    "pages": [
+      "Architecture-Overview",
+      "Data-Integration",
+      "ML-Models",
+      "Replenishment-Engine",
+      "SAP-Integration",
+      "Frontend",
+      "Infrastructure"
+    ]
+  }
+}
