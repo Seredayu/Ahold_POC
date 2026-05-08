@@ -20,17 +20,17 @@ describe('ShapWaterfall', () => {
   it('renders correct number of feature bars', () => {
     render(<ShapWaterfall shapValues={FIXTURE_SHAP} baseValue={0} predictedValue={45} skuId="SKU123" siteId="AH01" />)
     // 4 features in fixture
-    expect(document.querySelectorAll('.shap-bar').length).toBe(4)
+    expect(screen.getAllByTestId('shap-bar').length).toBe(4)
   })
 
   it('applies positive class for positive values', () => {
     render(<ShapWaterfall shapValues={{ demand_velocity: 0.15 }} baseValue={0} predictedValue={45} skuId="SKU123" siteId="AH01" />)
-    expect(document.querySelector('.shap-bar.positive')).toBeTruthy()
+    expect(screen.getByTestId('shap-bar').classList.contains('positive')).toBe(true)
   })
 
   it('applies negative class for negative values', () => {
     render(<ShapWaterfall shapValues={{ freshness_index: -0.05 }} baseValue={0} predictedValue={45} skuId="SKU123" siteId="AH01" />)
-    expect(document.querySelector('.shap-bar.negative')).toBeTruthy()
+    expect(screen.getByTestId('shap-bar').classList.contains('negative')).toBe(true)
   })
 
   it('renders empty state when shapValues is empty', () => {

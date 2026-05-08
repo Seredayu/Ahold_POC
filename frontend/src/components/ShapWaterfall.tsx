@@ -33,6 +33,7 @@ export const ShapWaterfall: React.FC<ShapWaterfallProps> = ({
         {sorted.map(([feature, value]) => (
           <div
             key={feature}
+            data-testid="shap-bar"
             className={`shap-bar ${value >= 0 ? "positive" : "negative"}`}
             style={{ "--bar-width": `${Math.abs(value) * 100}px` } as React.CSSProperties}
           >

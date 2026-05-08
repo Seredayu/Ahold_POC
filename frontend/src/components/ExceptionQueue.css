@@ -1,0 +1,14 @@
+@media (max-width: 640px) {
+  .exception-queue table, .exception-queue thead, .exception-queue tbody,
+  .exception-queue th, .exception-queue td, .exception-queue tr {
+    display: block;
+  }
+  .exception-queue thead tr { display: none; }
+  .exception-queue td { padding: 4px 8px; }
+}
+.exception-queue button { min-height: 44px; min-width: 80px; margin: 4px; }
+.status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+.status-badge.status-pending { background: #fef3c7; color: #92400e; }
+.status-badge.status-approved { background: #d1fae5; color: #065f46; }
+.status-badge.status-blocked { background: #fee2e2; color: #991b1b; }
+.status-badge.status-escalated { background: #e0e7ff; color: #3730a3; }

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ShapWaterfall } from "./ShapWaterfall";
+import "./ExceptionQueue.css";
 
 interface Exception {
   exception_id: string;
@@ -15,7 +16,7 @@ interface Exception {
 interface ExceptionQueueProps {
   exceptions: Exception[];
   onApprove: (id: string, overrideQty?: number, note?: string) => void;
-  onReject: (id: string) => void;
+  onReject: (id: string, note?: string) => void;
 }
 
 export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
@@ -26,14 +27,16 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
   const [selected, setSelected] = useState<string | null>(null);
   const [overrideInputs, setOverrideInputs] = useState<Map<string, { qty?: number; note?: string }>>(new Map());
 
-  const setQty = (id: string, qty: number | undefined) => {
-    setOverrideInputs((prev) => {
+  useEffect(() => {
+    setOverrideInputs(prev => {
+      const currentIds = new Set(exceptions.map(e => e.exception_id));
       const next = new Map(prev);
-      const existing = next.get(id) ?? {};
-      next.set(id, { ...existing, qty });
+      for (const key of next.keys()) {
+        if (!currentIds.has(key)) next.delete(key);
+      }
       return next;
     });
-  };
+  }, [exceptions]);
 
   const setNote = (id: string, note: string) => {
     setOverrideInputs((prev) => {
@@ -46,22 +49,6 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
 
   return (
     <div className="exception-queue">
-      <style>{`
-        @media (max-width: 640px) {
-          .exception-queue table, .exception-queue thead, .exception-queue tbody,
-          .exception-queue th, .exception-queue td, .exception-queue tr {
-            display: block;
-          }
-          .exception-queue thead tr { display: none; }
-          .exception-queue td { padding: 4px 8px; }
-        }
-        .exception-queue button { min-height: 44px; min-width: 80px; margin: 4px; }
-        .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-        .status-badge.status-pending { background: #fef3c7; color: #92400e; }
-        .status-badge.status-approved { background: #d1fae5; color: #065f46; }
-        .status-badge.status-blocked { background: #fee2e2; color: #991b1b; }
-        .status-badge.status-escalated { background: #e0e7ff; color: #3730a3; }
-      `}</style>
       <h2>Exception Queue ({exceptions.filter((e) => e.status === "PENDING").length} pending)</h2>
       <table className="responsive-table">
         <thead>
@@ -91,7 +78,7 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
                   <button onClick={(e) => { e.stopPropagation(); onApprove(exc.exception_id, overrideInputs.get(exc.exception_id)?.qty, overrideInputs.get(exc.exception_id)?.note); }}>
                     Approve
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); onReject(exc.exception_id); }}>
+                  <button onClick={(e) => { e.stopPropagation(); onReject(exc.exception_id, overrideInputs.get(exc.exception_id)?.note); }}>
                     Reject
                   </button>
                 </td>
@@ -111,7 +98,15 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
                         type="number"
                         placeholder="Override qty (optional)"
                         value={overrideInputs.get(exc.exception_id)?.qty ?? ""}
-                        onChange={(e) => setQty(exc.exception_id, e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                        onChange={(e) => {
+                          const v = e.target.valueAsNumber;
+                          setOverrideInputs(prev => {
+                            const next = new Map(prev);
+                            const existing = next.get(exc.exception_id) ?? {};
+                            next.set(exc.exception_id, { ...existing, qty: Number.isFinite(v) && v > 0 ? Math.round(v) : undefined });
+                            return next;
+                          });
+                        }}
                         style={{ marginRight: 8 }}
                       />
                       <textarea
