@@ -1,0 +1,36 @@
+# Azure Container Apps deployment for Ahold Freshness POC FastAPI backend
+apiVersion: 2024-02-02-preview
+location: westeurope
+name: ahold-freshness-api
+resourceGroup: rg-ahold-freshness-poc
+type: Microsoft.App/containerApps
+properties:
+  configuration:
+    ingress:
+      external: true
+      targetPort: 8000
+      transport: http
+    secrets:
+      - name: databricks-host
+        value: ""  # Set in Azure portal / CI pipeline
+      - name: databricks-token
+        value: ""  # Set in Azure portal / CI pipeline
+      - name: databricks-http-path
+        value: ""  # Set in Azure portal / CI pipeline
+  template:
+    containers:
+      - image: acrAholdFreshness.azurecr.io/ahold-freshness-api:latest
+        name: ahold-freshness-api
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: DATABRICKS_HOST
+            secretRef: databricks-host
+          - name: DATABRICKS_TOKEN
+            secretRef: databricks-token
+          - name: DATABRICKS_HTTP_PATH
+            secretRef: databricks-http-path
+    scale:
+      minReplicas: 1
+      maxReplicas: 3
