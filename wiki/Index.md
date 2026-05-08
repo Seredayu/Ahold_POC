@@ -1,33 +1,59 @@
-# Freshness Sprint POC — Wiki Index
+# Ahold Delhaize Freshness Sprint POC — Wiki Index
 
-> Last updated: 2026-05-08 | Sources: [ahold_delhaize_inventory_optimization_architecture.md, Ahold Delhaize - 1.md]
+> Last updated: 2026-05-08
 
-## Pages
+## Project Summary
+
+The **Ahold Delhaize Freshness Sprint POC** is an AI-driven inventory optimization system targeting **€350M+ annual EBITDA improvement**. The POC scope is Fresh Produce & Bakery at Albert Heijn NL, 50 pilot stores, with a **90% No-Touch ordering** goal and a hard **08:15 AM EDI 850 release** deadline.
+
+## Wiki Pages
 
 | Page | Description |
-|---|---|
-| [[Architecture-Overview]] | Full 8-layer solution architecture, daily timeline, KPIs, key decisions |
-| [[Data-Integration]] | Layer 2–3: Ingestion streams, Medallion (Bronze/Silver/Gold), Rosetta Stone, external data |
-| [[ML-Models]] | Layer 4–5: Feature Store, five ML engines, MLflow MLOps, SHAP explainability |
-| [[Replenishment-Engine]] | Three autonomous engines (Phantom Stock, Freshness MILP, Sweeper), EDI 850 deadline |
-| [[SAP-Integration]] | Clean Core mandate, BAPIs, ECC/S4HANA/Symphony write-backs, EDI, pre-sprint dependencies |
-| [[Frontend]] | React Field App, Power BI, SAP Analytics Cloud, SHAP Waterfall component |
-| [[Infrastructure]] | Azure + Databricks platform, security, monitoring, DevOps/MLOps, implementation roadmap |
-| [[Watcher]] | File system daemon that auto-ingests research/ changes into wiki pages |
-| [[Ingest]] | Core ingest pipeline — extract, Claude API call, manifest tracking, error handling |
-| [[Extract]] | Text extraction module — PDF, DOCX, PPTX, XLSX, MD, TXT handlers |
+|------|-------------|
+| [[Architecture-Overview]] | 8-Layer AI Inventory Optimization Architecture, system summary, KPIs, daily timeline |
+| [[Data-Integration]] | Three ingestion streams (SAP ECC, Symphony Gold, S/4HANA), Medallion layers, Rosetta Stone |
+| [[ML-Models]] | Five ML engines (Demand, Waste, Pricing, Replenishment, Supplier), Feature Store, MLOps |
+| [[Replenishment-Engine]] | Three autonomous engines (Phantom Stock, Freshness MILP, Sweeper), EDI 850 delivery |
+| [[SAP-Integration]] | Clean Core mandate, BAPIs, SAP BTP AI Core, EDI, pre-sprint dependencies |
+| [[Frontend]] | React Field App, SHAP Waterfall, Power BI, SAP Analytics Cloud |
+| [[Infrastructure]] | Azure + Databricks platform, security, DevOps, implementation roadmap |
+| [[Watcher]] | `watcher.py` file system daemon for automatic wiki ingestion |
+| [[Ingest]] | `ingest.py` pipeline — extract, Claude API call, manifest tracking |
+| [[Extract]] | `extract.py` — document-to-text conversion for ingest pipeline |
 
-## Key Facts
+## Research Folder Structure
 
-- **POC scope**: Fresh Produce & Bakery, Albert Heijn NL, 50 pilot stores
-- **No-Touch target**: 90% automated replenishment
-- **Hard deadline**: 08:15 AM CET EDI 850 release daily
-- **Expected ROI**: €350M+ annual EBITDA improvement
-- **Platform**: Databricks Lakehouse on Azure
-- **Source systems**: SAP ECC 6.0 (Western Europe), Symphony Gold (Central/Eastern Europe), SAP S/4HANA (Group Finance)
+| Folder | Purpose |
+|--------|---------|
+| `sources/` | Raw input docs — SAP specs, Databricks docs, Ahold process docs, PDFs |
+| `notebooklm-exports/` | Summaries, FAQs, and notes exported from NotebookLM sessions |
+| `architecture-decisions/` | ADRs (Architecture Decision Records) — why we chose X over Y |
+| `meeting-notes/` | Stakeholder meetings, SAP Basis discussions, supplier EDI calls |
+| `vendor-docs/` | Vendor-provided specs — EDI partner guides, SAP BAPI references, Databricks accelerator docs |
 
-## Critical Pre-Sprint Dependencies
+## Research Workflow
 
-1. SAP Basis RFC access + `BAPI_PO_CREATE1` authorization — **3-week lead time**
-2. EDI supplier partner agreement — **4–6 week lead time**
-3. Rosetta Stone match rate ≥ 95% validated against SAP MM60 exports
+1. Upload source docs to **NotebookLM** → ask questions, generate summaries
+2. Export summaries as markdown → save to `research/notebooklm-exports/`
+3. Reference in Claude Code with `@research/notebooklm-exports/filename.md`
+4. Claude Code turns research into implementation plans and code
+5. `watcher.py` detects new/changed files and auto-triggers wiki ingestion
+
+## Naming Conventions
+
+| Location | Pattern |
+|----------|---------|
+| `notebooklm-exports/` | `YYYY-MM-DD_topic.md` |
+| `architecture-decisions/` | `ADR-001_topic.md` |
+| `meeting-notes/` | `YYYY-MM-DD_meeting-topic.md` |
+
+## Critical Deadlines & Constraints
+
+- **08:15 AM CET**: Hard EDI 850 release deadline (daily)
+- **SAP Basis RFC access**: 3-week lead time — must initiate before sprint Week 1
+- **EDI supplier partner agreement**: 4–6 week lead time — must initiate in Week 1
+- **Rosetta Stone match rate**: ≥ 95% required before model training begins
+
+## Related
+
+[[Architecture-Overview]] [[Data-Integration]] [[ML-Models]] [[Replenishment-Engine]] [[SAP-Integration]] [[Frontend]] [[Infrastructure]] [[Watcher]] [[Ingest]] [[Extract]]

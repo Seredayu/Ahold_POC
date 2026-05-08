@@ -17,7 +17,7 @@ The POC scope is Fresh Produce & Bakery at Albert Heijn NL, 50 pilot stores, wit
 
 ### Layer 2: Data Integration & Ingestion
 Three distinct streams based on regional/technical requirements:
-- **Stream 1 — SAP ECC 6.0:** SAP Data Services (BODS) as "Trusted Proxy" using RFC and Operational Data Provisioning (ODP) to handle legacy cluster/pooled tables that modern CDC tools cannot read.
+- **Stream 1 — SAP ECC 6.0:** SAP Data Services (BODS) as "Trusted Proxy" using RFC and Operational Data Provisioning (ODP) to handle legacy cluster/pooled tables that modern CDC tools cannot read directly.
 - **Stream 2 — Symphony Gold:** Hybrid ingestion — real-time POS via REST APIs + SAP Event Mesh; large master data via SFTP/File Exports.
 - **Stream 3 — SAP S/4HANA:** Lakeflow Connect CDC for sub-minute latency streaming to keep financial reporting synchronized with operations.
 
