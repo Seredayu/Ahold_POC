@@ -7,18 +7,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'wiki'))
 
 import ingest
 
-TMP_MANIFEST = Path(__file__).parent / 'tmp_manifest.json'
-
-
-def setup_function():
-    if TMP_MANIFEST.exists():
-        TMP_MANIFEST.unlink()
-
-
-def teardown_function():
-    if TMP_MANIFEST.exists():
-        TMP_MANIFEST.unlink()
-
 
 def test_load_manifest_missing_returns_empty(tmp_path):
     with patch.object(ingest, 'MANIFEST_FILE', tmp_path / 'missing.json'):

@@ -4,6 +4,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Union
 
 import anthropic
 
@@ -51,12 +52,12 @@ def load_existing_pages() -> dict:
     return pages
 
 
-def _log_error(filepath: Path, error) -> None:
+def _log_error(filepath: Path, error: Union[Exception, str]) -> None:
     with open(ERRORS_LOG, 'a', encoding='utf-8') as f:
         f.write(f"{datetime.now().isoformat()} {filepath}: {error}\n")
 
 
-def ingest_file(filepath: Path, manifest: dict, client) -> None:
+def ingest_file(filepath: Path, manifest: dict, client: anthropic.Anthropic) -> None:
     filepath = Path(filepath)
     if not is_changed(filepath, manifest):
         return
@@ -79,7 +80,7 @@ def ingest_file(filepath: Path, manifest: dict, client) -> None:
     _call_api_and_write(filepath, text, manifest, client)
 
 
-def _ingest_image(filepath: Path, manifest: dict, client) -> None:
+def _ingest_image(filepath: Path, manifest: dict, client: anthropic.Anthropic) -> None:
     import base64
     import mimetypes
     mime = mimetypes.guess_type(str(filepath))[0] or 'image/png'
@@ -87,29 +88,34 @@ def _ingest_image(filepath: Path, manifest: dict, client) -> None:
     existing_pages = load_existing_pages()
     existing_context = _format_existing_pages(existing_pages)
 
-    response = client.messages.create(
-        model='claude-sonnet-4-6',
-        max_tokens=8096,
-        system=_system_prompt(),
-        messages=[{
-            'role': 'user',
-            'content': [
-                {
-                    'type': 'image',
-                    'source': {'type': 'base64', 'media_type': mime, 'data': data},
-                },
-                {
-                    'type': 'text',
-                    'text': f'Source image: {filepath.name}\n\nCurrent wiki pages:\n\n{existing_context}',
-                },
-            ],
-        }],
-    )
+    try:
+        response = client.messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=8096,
+            system=_system_prompt(),
+            messages=[{
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'image',
+                        'source': {'type': 'base64', 'media_type': mime, 'data': data},
+                    },
+                    {
+                        'type': 'text',
+                        'text': f'Source image: {filepath.name}\n\nCurrent wiki pages:\n\n{existing_context}',
+                    },
+                ],
+            }],
+        )
+    except Exception as e:
+        _log_error(filepath, e)
+        return  # don't update manifest — retry on next run
+
     _process_response(filepath, response, manifest)
 
 
 def _call_api_and_write(
-    filepath: Path, text: str, manifest: dict, client
+    filepath: Path, text: str, manifest: dict, client: anthropic.Anthropic
 ) -> None:
     existing_pages = load_existing_pages()
     existing_context = _format_existing_pages(existing_pages)
@@ -177,13 +183,14 @@ def _format_existing_pages(pages: dict) -> str:
     return '\n\n'.join(f'=== {name}.md ===\n{content}' for name, content in pages.items())
 
 
-def check_and_ingest_all(client) -> int:
+def check_and_ingest_all(client: anthropic.Anthropic) -> int:
     manifest = load_manifest()
     count = 0
     for ext in SUPPORTED_EXTENSIONS | IMAGE_EXTENSIONS:
         for filepath in RESEARCH_DIR.rglob(f'*{ext}'):
-            if is_changed(filepath, manifest):
-                ingest_file(filepath, manifest, client)
+            old_manifest = dict(manifest)
+            ingest_file(filepath, manifest, client)
+            if str(filepath) in manifest and manifest[str(filepath)] != old_manifest.get(str(filepath)):
                 count += 1
     return count
 
