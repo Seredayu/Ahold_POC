@@ -22,5 +22,6 @@ def manager_id() -> str:
 
 @pytest.fixture(scope="session")
 def client(api_base) -> httpx.Client:
-    with httpx.Client(base_url=api_base, timeout=30.0) as c:
-        yield c
+    c = httpx.Client(base_url=api_base, timeout=30.0)
+    yield c
+    c.close()

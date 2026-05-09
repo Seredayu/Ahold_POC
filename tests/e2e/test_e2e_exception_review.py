@@ -72,6 +72,8 @@ class TestApproveRejectWorkflow:
 
     def test_approved_exception_no_longer_pending(self, client):
         """Previously approved exception should not appear in PENDING list."""
+        # Note: consumes same PENDING pool as test_approve_exception. Tests are ordered by
+        # pytest class definition order, so approve runs first. If pool is empty, both skip.
         pending = client.get("/exceptions/?status=PENDING").json()
         if not pending:
             pytest.skip("No PENDING exceptions available")
@@ -102,3 +104,4 @@ class TestApproveRejectWorkflow:
         data = resp.json()
         assert data["status"] == "BLOCKED"
         assert data["manager_id"] == manager_id
+        assert "decision_timestamp" in data
