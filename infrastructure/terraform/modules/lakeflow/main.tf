@@ -36,52 +36,64 @@ resource "databricks_pipeline" "lakeflow_sap_bronze" {
   ingestion_definition {
     connection_name = databricks_connection.sap_ecc.name
 
-    table {
-      source_schema       = "SAP_ECC"
-      source_table        = "MARA"
-      destination_catalog = var.bronze_catalog
-      destination_schema  = "sap"
-      destination_table   = "materials_mara"
+    objects {
+      table {
+        source_schema       = "SAP_ECC"
+        source_table        = "MARA"
+        destination_catalog = var.bronze_catalog
+        destination_schema  = "sap"
+        destination_table   = "materials_mara"
+      }
     }
 
-    table {
-      source_schema       = "SAP_ECC"
-      source_table        = "MARC"
-      destination_catalog = var.bronze_catalog
-      destination_schema  = "sap"
-      destination_table   = "materials_marc"
+    objects {
+      table {
+        source_schema       = "SAP_ECC"
+        source_table        = "MARC"
+        destination_catalog = var.bronze_catalog
+        destination_schema  = "sap"
+        destination_table   = "materials_marc"
+      }
     }
 
-    table {
-      source_schema       = "SAP_ECC"
-      source_table        = "MSEG"
-      destination_catalog = var.bronze_catalog
-      destination_schema  = "sap"
-      destination_table   = "inventory_mseg"
+    objects {
+      table {
+        source_schema       = "SAP_ECC"
+        source_table        = "MSEG"
+        destination_catalog = var.bronze_catalog
+        destination_schema  = "sap"
+        destination_table   = "inventory_mseg"
+      }
     }
 
-    table {
-      source_schema       = "SAP_ECC"
-      source_table        = "MKPF"
-      destination_catalog = var.bronze_catalog
-      destination_schema  = "sap"
-      destination_table   = "inventory_mkpf"
+    objects {
+      table {
+        source_schema       = "SAP_ECC"
+        source_table        = "MKPF"
+        destination_catalog = var.bronze_catalog
+        destination_schema  = "sap"
+        destination_table   = "inventory_mkpf"
+      }
     }
 
-    table {
-      source_schema       = "SAP_ECC"
-      source_table        = "EKKO"
-      destination_catalog = var.bronze_catalog
-      destination_schema  = "sap"
-      destination_table   = "open_orders_ekko"
+    objects {
+      table {
+        source_schema       = "SAP_ECC"
+        source_table        = "EKKO"
+        destination_catalog = var.bronze_catalog
+        destination_schema  = "sap"
+        destination_table   = "open_orders_ekko"
+      }
     }
 
-    table {
-      source_schema       = "SAP_ECC"
-      source_table        = "EKPO"
-      destination_catalog = var.bronze_catalog
-      destination_schema  = "sap"
-      destination_table   = "open_orders_ekpo"
+    objects {
+      table {
+        source_schema       = "SAP_ECC"
+        source_table        = "EKPO"
+        destination_catalog = var.bronze_catalog
+        destination_schema  = "sap"
+        destination_table   = "open_orders_ekpo"
+      }
     }
   }
 }
