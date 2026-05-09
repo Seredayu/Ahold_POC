@@ -42,17 +42,17 @@ jobs:
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --query "properties.configuration.ingress.fqdn" \
             --output tsv)
-          echo "ACA_FQDN=$ACA_FQDN" >> $GITHUB_ENV
           for i in $(seq 1 12); do
-            STATUS=$(curl -sf "https://${ACA_FQDN}/health" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || echo "")
-            if [ "$STATUS" = "ok" ]; then
-              echo "Health check passed"
+            HTTP_STATUS=$(curl -sf -o /tmp/health.json -w "%{http_code}" "https://${ACA_FQDN}/health" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ] && jq -e '.status == "ok"' /tmp/health.json >/dev/null 2>&1; then
+              echo "Health check passed (attempt $i)"
               exit 0
             fi
-            echo "Attempt $i: not ready yet, waiting 5s..."
+            echo "Attempt $i: HTTP $HTTP_STATUS, waiting 5s..."
             sleep 5
           done
           echo "Health check failed after 60s"
+          cat /tmp/health.json 2>/dev/null || true
           exit 1
 
   e2e-smoke:
