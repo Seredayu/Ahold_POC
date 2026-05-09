@@ -59,3 +59,25 @@ module "lakeflow" {
 
   depends_on = [module.databricks]
 }
+
+module "frontend" {
+  source = "./modules/frontend"
+
+  prefix              = var.prefix
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+}
+
+module "api" {
+  source = "./modules/api"
+
+  prefix               = var.prefix
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = var.location
+  databricks_host      = var.databricks_host
+  databricks_token     = var.databricks_token
+  databricks_http_path = var.databricks_http_path
+  swa_hostname         = var.swa_hostname != "" ? var.swa_hostname : module.frontend.hostname
+
+  depends_on = [module.frontend]
+}
