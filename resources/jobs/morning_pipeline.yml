@@ -1,0 +1,102 @@
+name: morning-pipeline-${bundle.target}
+schedule:
+  quartz_cron_expression: "0 0 5 * * ?"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
+tasks:
+  # --- Feature Store Refresh (sequential: velocity -> stock -> collapse signals) ---
+  - task_key: fs_refresh_velocity
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: fs_velocity_features
+    timeout_seconds: 1800
+  - task_key: fs_refresh_stock
+    depends_on:
+      - task_key: fs_refresh_velocity
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: fs_stock_features
+    timeout_seconds: 1800
+  - task_key: fs_refresh_collapse
+    depends_on:
+      - task_key: fs_refresh_stock
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: fs_collapse_signals
+    timeout_seconds: 1800
+
+  # --- Phantom Stock branch (parallel with demand branch after feature store) ---
+  - task_key: phantom_stock_score_batch
+    depends_on:
+      - task_key: fs_refresh_collapse
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_score_batch
+    timeout_seconds: 1800
+  - task_key: phantom_stock_write_alerts
+    depends_on:
+      - task_key: phantom_stock_score_batch
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_write_alerts
+    timeout_seconds: 900
+  - task_key: phantom_stock_bapi_writeback
+    depends_on:
+      - task_key: phantom_stock_write_alerts
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: phantom_bapi_writeback
+    timeout_seconds: 1800
+
+  # --- Demand branch (parallel with phantom branch after feature store) ---
+  - task_key: ingest_weather
+    depends_on:
+      - task_key: fs_refresh_collapse
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: demand_ingest_weather
+    timeout_seconds: 300
+  - task_key: score_m1
+    depends_on:
+      - task_key: ingest_weather
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: demand_score_m1
+    timeout_seconds: 1800
+  - task_key: score_m2
+    depends_on:
+      - task_key: score_m1
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: demand_score_m2
+    timeout_seconds: 1800
+  - task_key: score_m4
+    depends_on:
+      - task_key: score_m2
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: demand_score_m4
+    timeout_seconds: 1800
+
+  # --- Freshness branch (after demand models complete) ---
+  - task_key: freshness_milp_solve
+    depends_on:
+      - task_key: score_m4
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: freshness_milp_solve
+    timeout_seconds: 3600
+  - task_key: freshness_write_recommendations
+    depends_on:
+      - task_key: freshness_milp_solve
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: freshness_write_recommendations
+    timeout_seconds: 1800
+  - task_key: freshness_bapi_po_create
+    depends_on:
+      - task_key: freshness_write_recommendations
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: freshness_bapi_po_create
+    timeout_seconds: 3600
