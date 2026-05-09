@@ -7,7 +7,7 @@ terraform {
   }
 }
 
-resource "azurerm_static_site" "frontend" {
+resource "azurerm_static_web_app" "frontend" {
   name                = "${var.prefix}-swa"
   resource_group_name = var.resource_group_name
   location            = var.location
