@@ -10,3 +10,7 @@ expressroute_authorization_key = "00000000-0000-0000-0000-000000000000"
 databricks_account_id          = "00000000-0000-0000-0000-000000000000"
 # Leave empty for Stage 1. After Stage 1 apply completes, set this to terraform output workspace_url value.
 workspace_url                  = ""
+databricks_host                = "adb-xxxxxxxxxxxx.azuredatabricks.net"
+databricks_token               = "dapixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+databricks_http_path           = "/sql/1.0/warehouses/xxxxxxxxxxxxxxxx"
+swa_hostname                   = ""  # leave empty on first apply; fill in after apply, then re-apply
