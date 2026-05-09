@@ -19,5 +19,6 @@ output "aca_identity_principal_id" {
 }
 
 output "aca_name" {
-  value = azurerm_container_app.api.name
+  description = "Container App name — used in GitHub Actions az containerapp update commands"
+  value       = azurerm_container_app.api.name
 }
