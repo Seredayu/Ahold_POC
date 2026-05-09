@@ -27,8 +27,4 @@ Validated decisions are pushed back to source systems and presented to users:
 ### **Involved Documents and Sources**
 Below are the primary documents and sources involved in this architecture:
 
-*   **Primary Technical Guide:** [8-Layer Architecture for Ahold Delhaize's AI-driven inventory optimization.pdf](https://example.com/source_not_available) (Source 1)
-*   **Industry News:** [Ahold Delhaize turns to AI-powered distribution | Grocery Dive](https://www.grocerydive.com/news/ahold-delhaize-turns-to-ai-powered-distribution/551528/) (Source 2)
-*   **Strategic Case Study:** [Delhaize case study - PwC](https://www.pwc.be/en/case-studies/delhaize-case-study.html) (Source 9)
-*   **Core Technology Documentation:** [Lakeflow Connect - Databricks](https://www.databricks.com/product/pricing/lakeflow-connect) (Source 18)
-*   **Integration Feature Guide:** [Managed connectors in Lakeflow Connect | Databricks on AWS](https://docs.databricks.com/en/ingestion/lakeflow-connect/managed-connectors.html) (Source 20)
+*   

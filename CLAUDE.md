@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -41,3 +41,9 @@ The system is structured as a Medallion Lakehouse on Databricks (Azure) with thr
 - SAP Basis must grant RFC access and authorize `BAPI_PO_CREATE1` authorization objects — 3-week approval lead time
 - EDI supplier partner agreement — 4–6 week procurement lead time; initiate in Week 1
 - Rosetta Stone match rate must be validated against SAP MM60 exports before committing to ≥95% target
+## Output style 
+No preambule.
+Tool result first. 
+No explanation of actions. 
+Stop.
+

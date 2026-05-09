@@ -55,12 +55,3 @@ targets:
       host: ${var.workspace_url}
     variables:
       schedule_enabled: "true"
-      storage_account: "saholdpocdata"
-
-  prod:
-    mode: production
-    workspace:
-      host: ${var.workspace_url}
-    variables:
-      schedule_enabled: "true"
-      storage_account: "saholdpocdata"
