@@ -10,7 +10,7 @@ terraform {
 resource "azurerm_static_site" "frontend" {
   name                = "${var.prefix}-swa"
   resource_group_name = var.resource_group_name
-  location            = "westeurope"
+  location            = var.location
   sku_tier            = "Free"
   sku_size            = "Free"
 }

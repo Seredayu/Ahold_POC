@@ -28,10 +28,11 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      # VITE_API_BASE: set this GitHub secret to https://<aca_fqdn from terraform output aca_fqdn>
       - name: Build
         working-directory: frontend
         env:
-          VITE_API_BASE: ${{ secrets.E2E_API_BASE }}
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
           VITE_POLLING_INTERVAL_MS: "15000"
         run: npm run build
 

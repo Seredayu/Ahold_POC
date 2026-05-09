@@ -3,10 +3,10 @@ import pytest
 import httpx
 
 
-def pytest_configure(config):
-    """Skip all e2e tests if E2E_API_BASE is not set."""
+@pytest.fixture(scope="session", autouse=True)
+def require_e2e_api_base():
     if not os.environ.get("E2E_API_BASE"):
-        pytest.skip("E2E_API_BASE not set — skipping e2e tests", allow_module_level=True)
+        pytest.skip("E2E_API_BASE not set — skipping e2e tests")
 
 
 @pytest.fixture(scope="session")

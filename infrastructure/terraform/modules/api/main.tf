@@ -58,13 +58,20 @@ resource "azurerm_container_app" "api" {
     value = var.databricks_http_path
   }
 
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+    ]
+  }
+
   template {
     min_replicas = 1
     max_replicas = 3
 
     container {
       name   = "api"
-      image  = "${azurerm_container_registry.main.login_server}/${var.prefix}-api:latest"
+      # Bootstrap image for initial terraform apply. CI workflow deploys the real image.
+      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
       cpu    = 0.5
       memory = "1Gi"
 
