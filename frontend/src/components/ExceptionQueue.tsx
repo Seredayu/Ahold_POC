@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ShapWaterfall } from "./ShapWaterfall";
+import "./ExceptionQueue.css";
 
 interface Exception {
   exception_id: string;
@@ -14,8 +15,8 @@ interface Exception {
 
 interface ExceptionQueueProps {
   exceptions: Exception[];
-  onApprove: (id: string, overrideQty?: number) => void;
-  onReject: (id: string) => void;
+  onApprove: (id: string, overrideQty?: number, note?: string) => void;
+  onReject: (id: string, note?: string) => void;
 }
 
 export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
@@ -24,11 +25,32 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
   onReject,
 }) => {
   const [selected, setSelected] = useState<string | null>(null);
+  const [overrideInputs, setOverrideInputs] = useState<Map<string, { qty?: number; note?: string }>>(new Map());
+
+  useEffect(() => {
+    setOverrideInputs(prev => {
+      const currentIds = new Set(exceptions.map(e => e.exception_id));
+      const next = new Map(prev);
+      for (const key of next.keys()) {
+        if (!currentIds.has(key)) next.delete(key);
+      }
+      return next;
+    });
+  }, [exceptions]);
+
+  const setNote = (id: string, note: string) => {
+    setOverrideInputs((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(id) ?? {};
+      next.set(id, { ...existing, note: note || undefined });
+      return next;
+    });
+  };
 
   return (
     <div className="exception-queue">
       <h2>Exception Queue ({exceptions.filter((e) => e.status === "PENDING").length} pending)</h2>
-      <table>
+      <table className="responsive-table">
         <thead>
           <tr>
             <th>SKU</th>
@@ -36,6 +58,7 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
             <th>Type</th>
             <th>Qty</th>
             <th>Deviation</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -49,17 +72,20 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
                 <td>{exc.recommended_qty}</td>
                 <td>{(exc.deviation_pct * 100).toFixed(1)}%</td>
                 <td>
-                  <button onClick={(e) => { e.stopPropagation(); onApprove(exc.exception_id); }}>
+                  <span className={`status-badge status-${exc.status.toLowerCase()}`}>{exc.status}</span>
+                </td>
+                <td>
+                  <button onClick={(e) => { e.stopPropagation(); onApprove(exc.exception_id, overrideInputs.get(exc.exception_id)?.qty, overrideInputs.get(exc.exception_id)?.note); }}>
                     Approve
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); onReject(exc.exception_id); }}>
+                  <button onClick={(e) => { e.stopPropagation(); onReject(exc.exception_id, overrideInputs.get(exc.exception_id)?.note); }}>
                     Reject
                   </button>
                 </td>
               </tr>
               {selected === exc.exception_id && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <ShapWaterfall
                       shapValues={exc.shap_values}
                       baseValue={0}
@@ -67,6 +93,29 @@ export const ExceptionQueue: React.FC<ExceptionQueueProps> = ({
                       skuId={exc.sku_id}
                       siteId={exc.site_id}
                     />
+                    <div className="shap-detail-row">
+                      <input
+                        type="number"
+                        placeholder="Override qty (optional)"
+                        value={overrideInputs.get(exc.exception_id)?.qty ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.valueAsNumber;
+                          setOverrideInputs(prev => {
+                            const next = new Map(prev);
+                            const existing = next.get(exc.exception_id) ?? {};
+                            next.set(exc.exception_id, { ...existing, qty: Number.isFinite(v) && v > 0 ? Math.round(v) : undefined });
+                            return next;
+                          });
+                        }}
+                        className="override-qty-input"
+                      />
+                      <textarea
+                        placeholder="Note (optional)"
+                        value={overrideInputs.get(exc.exception_id)?.note ?? ""}
+                        onChange={(e) => setNote(exc.exception_id, e.target.value)}
+                        rows={2}
+                      />
+                    </div>
                   </td>
                 </tr>
               )}

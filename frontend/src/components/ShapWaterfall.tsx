@@ -15,6 +15,10 @@ export const ShapWaterfall: React.FC<ShapWaterfallProps> = ({
   skuId,
   siteId,
 }) => {
+  if (Object.keys(shapValues).length === 0) {
+    return <div className="shap-waterfall"><p>No SHAP data available for this exception.</p></div>;
+  }
+
   const sorted = Object.entries(shapValues).sort(
     ([, a], [, b]) => Math.abs(b) - Math.abs(a)
   );
@@ -29,6 +33,7 @@ export const ShapWaterfall: React.FC<ShapWaterfallProps> = ({
         {sorted.map(([feature, value]) => (
           <div
             key={feature}
+            data-testid="shap-bar"
             className={`shap-bar ${value >= 0 ? "positive" : "negative"}`}
             style={{ "--bar-width": `${Math.abs(value) * 100}px` } as React.CSSProperties}
           >
@@ -41,7 +46,7 @@ export const ShapWaterfall: React.FC<ShapWaterfallProps> = ({
         ))}
       </div>
       <div className="shap-prediction">
-        Predicted: {predictedValue.toFixed(2)}
+        Predicted: {Math.round(predictedValue)} units
       </div>
     </div>
   );
