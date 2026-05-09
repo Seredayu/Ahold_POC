@@ -33,6 +33,9 @@ setup(
             "freshness_milp_solve=engines.freshness.freshness_pipeline:_entry_freshness_milp_solve",
             "freshness_write_recommendations=engines.freshness.freshness_pipeline:_entry_write_recommendations",
             "freshness_bapi_po_create=engines.freshness.freshness_pipeline:_entry_bapi_po_create",
+            # Phase 4A — Sweeper + EDI
+            "sweeper_load_exceptions=engines.sweeper.sweeper_pipeline:_entry_load_exceptions",
+            "sweeper_finalize=engines.sweeper.sweeper_pipeline:_entry_finalize",
         ],
     },
     python_requires=">=3.8",

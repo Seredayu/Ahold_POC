@@ -24,6 +24,8 @@ resources:
       source: resources/jobs/demand_forecast_train.yml
     morning_pipeline:
       source: resources/jobs/morning_pipeline.yml
+    sweeper_finalize:
+      source: resources/jobs/sweeper_finalize.yml
 
 variables:
   workspace_url:
@@ -53,12 +55,3 @@ targets:
       host: ${var.workspace_url}
     variables:
       schedule_enabled: "true"
-      storage_account: "saholdpocdata"
-
-  prod:
-    mode: production
-    workspace:
-      host: ${var.workspace_url}
-    variables:
-      schedule_enabled: "true"
-      storage_account: "saholdpocdata"

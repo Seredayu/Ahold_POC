@@ -1,0 +1,11 @@
+name: sweeper-finalize-${bundle.target}
+schedule:
+  quartz_cron_expression: "0 10 8 * * ?"
+  timezone_id: "Europe/Amsterdam"
+  pause_status: ${var.schedule_enabled == "true" ? "UNPAUSED" : "PAUSED"}
+tasks:
+  - task_key: sweeper_finalize
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: sweeper_finalize
+    timeout_seconds: 1800

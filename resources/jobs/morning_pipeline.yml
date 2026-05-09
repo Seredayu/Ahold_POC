@@ -93,10 +93,19 @@ tasks:
       package_name: ahold_freshness_poc
       entry_point: freshness_write_recommendations
     timeout_seconds: 1800
-  - task_key: freshness_bapi_po_create
+  - task_key: bapi_po_create
     depends_on:
       - task_key: freshness_write_recommendations
     python_wheel_task:
       package_name: ahold_freshness_poc
       entry_point: freshness_bapi_po_create
     timeout_seconds: 3600
+
+  # --- Phase 4A: Sweeper + EDI ---
+  - task_key: sweeper_load_exceptions
+    depends_on:
+      - task_key: bapi_po_create
+    python_wheel_task:
+      package_name: ahold_freshness_poc
+      entry_point: sweeper_load_exceptions
+    timeout_seconds: 900
