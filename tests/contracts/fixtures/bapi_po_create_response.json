@@ -1,0 +1,4 @@
+{
+  "POHDR": {"EBELN": "4500001234"},
+  "RETURN": [{"TYPE": "S", "MESSAGE": "Standard PO 4500001234 created"}]
+}

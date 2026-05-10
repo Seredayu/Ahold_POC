@@ -1,0 +1,4 @@
+[
+  ["AH01", "SKU123456", 100, 0.75, 0.25, "ESCALATE", "High Deviation", null, null, null, null, null, "{\"demand_trend\": 0.15, \"transit_ratio\": -0.08}", "20260508T061500Z"],
+  ["AH02", "SKU789012", 50, 0.60, 0.40, "ESCALATE", "Transit Risk", null, null, null, null, null, "{\"demand_trend\": 0.10, \"transit_ratio\": -0.12}", "20260508T061500Z"]
+]
