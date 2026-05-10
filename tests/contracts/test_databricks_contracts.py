@@ -55,13 +55,12 @@ class TestExceptionQueueSchema:
 
     def test_loaded_at_format(self, exception_queue_rows):
         loaded_at = exception_queue_rows[0][13]
-        assert len(loaded_at) == 16  # "20260508T061500Z"
+        assert len(loaded_at) == 16
         assert "T" in loaded_at
 
 
 class TestExceptionQueueListEndpoint:
     def test_list_returns_pending_exceptions(self, exception_queue_rows):
-        from unittest.mock import patch, MagicMock
         cursor = _make_mock_cursor(exception_queue_rows)
         conn = _make_mock_conn(cursor)
 
@@ -75,7 +74,6 @@ class TestExceptionQueueListEndpoint:
             assert isinstance(data, list)
 
     def test_exception_id_uses_pipe_delimiter(self, exception_queue_rows):
-        from unittest.mock import patch
         cursor = _make_mock_cursor(exception_queue_rows)
         conn = _make_mock_conn(cursor)
 
