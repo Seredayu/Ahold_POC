@@ -33,6 +33,18 @@ jobs:
             ${{ secrets.ACR_NAME }}.azurecr.io/ahold-freshness-api:${{ github.sha }}
             ${{ secrets.ACR_NAME }}.azurecr.io/ahold-freshness-api:latest
 
+      - name: Configure ACR registry on Container App
+        run: |
+          IDENTITY_ID=$(az containerapp show \
+            --name ${{ secrets.ACA_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query "identity.principalId" --output tsv)
+          az containerapp registry set \
+            --name ${{ secrets.ACA_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --server ${{ secrets.ACR_NAME }}.azurecr.io \
+            --identity system
+
       - name: Update Container App revision
         run: |
           az containerapp update \
