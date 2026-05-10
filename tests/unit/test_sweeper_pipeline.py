@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
 import pytest
 
 
@@ -114,6 +118,8 @@ def test_classify_finalize_block():
 # ---------------------------------------------------------------------------
 
 def test_build_edi_lines_by_vendor_groups_correctly():
+    pytest.importorskip("integration.edi.edi_850_generator",
+                        reason="integration.edi not importable — run with src/ on PYTHONPATH")
     from engines.sweeper.sweeper_pipeline import _build_edi_lines_by_vendor
 
     rows = [
