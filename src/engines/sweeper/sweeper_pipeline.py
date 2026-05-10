@@ -10,6 +10,11 @@ _log = logging.getLogger(__name__)
 
 _EDI_SENDER_ID = "AHOLD_NL"
 
+try:
+    from integration.edi.edi_850_generator import EDI850Line as _EDI850Line
+except ImportError:
+    _EDI850Line = None  # type: ignore
+
 
 def _exception_queue_schema():
     from pyspark.sql.types import (
@@ -71,7 +76,9 @@ def _classify_finalize_row(row: dict) -> tuple:
 
 def _build_edi_lines_by_vendor(rows: list) -> dict:
     """Group consolidated po_audit+registry rows into EDI lines keyed by vendor_id."""
-    from integration.edi.edi_850_generator import EDI850Line
+    EDI850Line = _EDI850Line
+    if EDI850Line is None:
+        from integration.edi.edi_850_generator import EDI850Line  # type: ignore
 
     result: dict = {}
     for row in rows:
